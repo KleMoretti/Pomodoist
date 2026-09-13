@@ -1,3 +1,4 @@
+import '../project_localizations.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -1246,7 +1247,7 @@ class _AgendaProjectLabel extends StatelessWidget {
           const SizedBox(width: 4),
           Flexible(
             child: Text(
-              project.name,
+              project.displayName(context.l10n),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(

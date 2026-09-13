@@ -69,7 +69,7 @@ class _FocusLinkedTaskContext extends ConsumerWidget {
                     ),
                   ),
                   TextSpan(
-                    text: ' ${project.name}',
+                    text: ' ${project.displayName(context.l10n)}',
                     style: TextStyle(color: context.appColors.secondaryText),
                   ),
                 ],
