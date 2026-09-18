@@ -3,10 +3,12 @@ import 'dart:async';
 
 import 'package:app_account/app_account.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pomodoist/app/account_providers.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:pomodoist/app/config/account_providers.dart';
 import 'package:pomodoist/features/billing/billing.dart';
 import 'package:pomodoist/features/settings/presentation/settings_screen.dart';
 import 'package:pomodoist/features/settings/presentation/settings_navigation.dart';
@@ -162,6 +164,13 @@ void main() {
   });
 
   test('registerInstall failure does not block account overview', () async {
+    PackageInfo.setMockInitialValues(
+      appName: 'Pomodoist',
+      packageName: 'test',
+      version: '2.4.1',
+      buildNumber: '37',
+      buildSignature: '',
+    );
     final overview = AccountOverview(
       profile: const AccountProfile(id: 'user'),
       apps: const [],
@@ -189,7 +198,46 @@ void main() {
       await container.read(accountOverviewProvider.future),
       same(overview),
     );
+    await Future<void>.delayed(Duration.zero);
+    expect(account.recordedVersion, '2.4.1+37');
+    expect(account.recordedPlatform, defaultTargetPlatform.name.toLowerCase());
+    expect(account.recordedDeviceId, 'device');
   });
+
+  test(
+    'account overview loads through a stale signed-out auth state',
+    () async {
+      final overview = AccountOverview(
+        profile: const AccountProfile(id: 'user'),
+        apps: const [],
+        generatedAt: DateTime.utc(2026, 7, 11),
+      );
+      final account = _OverviewAccountClient(
+        overview: () async => overview,
+        registerInstallCallback: () async {},
+      );
+      final container = ProviderContainer(
+        overrides: [
+          accountClientProvider.overrideWithValue(account),
+          // The auth stream can report a stale signed-out snapshot while the
+          // live session is intact, so the profile must still load.
+          accountAuthStateProvider.overrideWithValue(
+            const AsyncData(AccountAuthState(signedIn: false)),
+          ),
+          pomodoistDeviceIdProvider.overrideWith((ref) async => 'device'),
+          accountRequestTimeoutProvider.overrideWithValue(
+            const Duration(milliseconds: 10),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      expect(
+        await container.read(accountOverviewProvider.future),
+        same(overview),
+      );
+    },
+  );
 
   testWidgets('account overview failure remains until login retry', (
     tester,
@@ -268,6 +316,9 @@ class _OverviewAccountClient implements AccountClient {
 
   final Future<AccountOverview> Function() overview;
   final Future<void> Function() registerInstallCallback;
+  String? recordedVersion;
+  String? recordedPlatform;
+  String? recordedDeviceId;
 
   @override
   String? get currentUserId => 'user';
@@ -281,7 +332,12 @@ class _OverviewAccountClient implements AccountClient {
     required String deviceId,
     String? platform,
     String? appVersion,
-  }) => registerInstallCallback();
+  }) {
+    recordedVersion = appVersion;
+    recordedPlatform = platform;
+    recordedDeviceId = deviceId;
+    return registerInstallCallback();
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

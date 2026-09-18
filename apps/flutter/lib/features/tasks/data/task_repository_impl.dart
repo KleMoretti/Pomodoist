@@ -6,11 +6,14 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/db/app_database.dart';
+import '../../collaboration/data/shared_access.dart';
+import '../../collaboration/domain/collaboration_models.dart';
 import '../../../core/sync/sync_queue_repository.dart';
-import '../domain/project_colors.dart';
-import '../domain/project_hierarchy.dart';
 import '../domain/task_models.dart';
 import 'kanban_transition_coordinator.dart';
+import 'task_repository_support.dart';
+export 'label_repository_impl.dart';
+export 'project_repository_impl.dart';
 
 class DriftTaskRepository implements TaskRepository {
   static const _deleteUndoWindow = Duration(seconds: 7);
@@ -28,6 +31,7 @@ class DriftTaskRepository implements TaskRepository {
        _onUserTaskCreated = onUserTaskCreated;
 
   final AppDatabase _db;
+  SharedAccess get _access => SharedAccess(_db);
   final SyncQueueRepository _syncQueue;
   final Uuid _uuid;
   final KanbanTransitionCoordinator _kanbanTransitions;
@@ -68,31 +72,72 @@ class DriftTaskRepository implements TaskRepository {
         );
       statement.where((task) => task.id.isInQuery(links));
     }
-    return statement.watch().map((rows) {
-      final tasks = rows
-          .map(_mapTask)
-          .where((task) => _matchesQuery(task, query))
-          .toList();
-      tasks.sort((a, b) {
-        final dayOrderCompare = (a.dayOrder ?? 999999).compareTo(
-          b.dayOrder ?? 999999,
-        );
-        if (dayOrderCompare != 0) {
-          return dayOrderCompare;
-        }
-        return a.orderKey.compareTo(b.orderKey);
-      });
-      return tasks;
-    });
+    return statement
+        .join([
+          leftOuterJoin(
+            _db.sharedScopes,
+            _db.sharedScopes.id.equalsExp(_db.tasks.scopeId),
+          ),
+        ])
+        .watch()
+        .asyncMap((rows) async {
+          final actorId = await _access.actorId();
+          final tasks = rows
+              .map(
+                (result) => _mapTask(
+                  result.readTable(_db.tasks),
+                  scope: sharedScopeFromRow(
+                    result.readTableOrNull(_db.sharedScopes),
+                  ),
+                ),
+              )
+              .where(
+                (task) =>
+                    !{
+                      TaskQueryKind.today,
+                      TaskQueryKind.upcoming,
+                      TaskQueryKind.day,
+                    }.contains(query.kind) ||
+                    task.scopeId == null ||
+                    task.assigneeIds.contains(actorId),
+              )
+              .where((task) => _matchesQuery(task, query))
+              .toList();
+          tasks.sort((a, b) {
+            final dayOrderCompare = (a.dayOrder ?? 999999).compareTo(
+              b.dayOrder ?? 999999,
+            );
+            if (dayOrderCompare != 0) {
+              return dayOrderCompare;
+            }
+            return a.orderKey.compareTo(b.orderKey);
+          });
+          return tasks;
+        });
   }
 
   @override
   Stream<TaskItem?> watchTask(String id) {
     final statement = _db.select(_db.tasks)
       ..where((task) => task.id.equals(id));
-    return statement.watchSingleOrNull().map(
-      (row) => row == null ? null : _mapTask(row),
-    );
+    return statement
+        .join([
+          leftOuterJoin(
+            _db.sharedScopes,
+            _db.sharedScopes.id.equalsExp(_db.tasks.scopeId),
+          ),
+        ])
+        .watchSingleOrNull()
+        .map(
+          (result) => result == null
+              ? null
+              : _mapTask(
+                  result.readTable(_db.tasks),
+                  scope: sharedScopeFromRow(
+                    result.readTableOrNull(_db.sharedScopes),
+                  ),
+                ),
+        );
   }
 
   TaskRow? _recurrenceTask(List<TaskRow> rows, String id) {
@@ -168,6 +213,14 @@ class DriftTaskRepository implements TaskRepository {
     final id = _uuid.v4();
     final now = DateTime.now().toUtc();
     final projectId = input.projectId ?? inboxProjectId;
+    final scopeId = await _access.projectScope(projectId);
+    await _access.requireEdit(scopeId);
+    await _access.taskLocation(
+      projectId,
+      parentId: input.parentId,
+      sectionId: input.sectionId,
+    );
+    final creator = await _access.actorId();
     final schedule =
         input.schedule ??
         (input.dueDate == null ? null : TaskSchedule.allDay(input.dueDate!));
@@ -180,6 +233,8 @@ class DriftTaskRepository implements TaskRepository {
             TasksCompanion.insert(
               id: id,
               userId: localUserId,
+              scopeId: Value(scopeId),
+              createdBy: Value(creator),
               content: input.content,
               description: Value(input.description),
               projectId: projectId,
@@ -254,6 +309,9 @@ class DriftTaskRepository implements TaskRepository {
     if (taskIds.isEmpty) {
       return const [];
     }
+    for (final id in taskIds) {
+      await _access.task(id);
+    }
     final duplicateIds = <String>[];
     await _db.transaction(() async {
       final rows = await (_db.select(
@@ -301,6 +359,9 @@ class DriftTaskRepository implements TaskRepository {
               TasksCompanion.insert(
                 id: duplicateId,
                 userId: source.userId,
+                scopeId: Value(source.scopeId),
+                createdBy: Value(await _access.actorId()),
+                assigneeIdsJson: Value(source.assigneeIdsJson),
                 content: source.content,
                 description: Value(source.description),
                 projectId: source.projectId,
@@ -363,6 +424,16 @@ class DriftTaskRepository implements TaskRepository {
 
   @override
   Future<void> updateTask(String id, UpdateTaskPatch patch) async {
+    if (patch.content != null ||
+        patch.updateDescription ||
+        patch.priority != null ||
+        patch.dueDate != null ||
+        patch.schedule != null ||
+        patch.clearSchedule ||
+        patch.estimatedFocusIntervals != null ||
+        patch.labelNames != null) {
+      await _access.task(id);
+    }
     final now = DateTime.now().toUtc();
     final schedule =
         patch.schedule ??
@@ -433,6 +504,10 @@ class DriftTaskRepository implements TaskRepository {
       final childrenByParent = _childrenByParent(rows);
 
       for (final row in rows) {
+        if (row.scopeId != null &&
+            !((await _access.scope(row.scopeId))?.canEdit ?? false)) {
+          continue;
+        }
         final schedule = TaskSchedule.fromJsonString(row.dueJson);
         final recurrence = schedule?.recurrence;
         if (schedule == null || recurrence == null) {
@@ -470,6 +545,7 @@ class DriftTaskRepository implements TaskRepository {
     bool clearParentId = false,
     String? orderKey,
   }) async {
+    await _access.task(id, destinationProjectId: projectId);
     final now = DateTime.now().toUtc();
     await _db.transaction(() async {
       final rows = await (_db.select(
@@ -489,6 +565,14 @@ class DriftTaskRepository implements TaskRepository {
         );
       }
 
+      await _access.taskLocation(
+        projectId ?? task.projectId,
+        parentId: clearParentId ? null : parentId ?? task.parentId,
+        sectionId:
+            clearSectionId || projectId != null && projectId != task.projectId
+            ? sectionId
+            : sectionId ?? task.sectionId,
+      );
       final subtree = _subtreeRows(id, rows);
       final updateSection = clearSectionId || sectionId != null;
       final updateParent = clearParentId || parentId != null;
@@ -497,6 +581,8 @@ class DriftTaskRepository implements TaskRepository {
         final nextProjectId = projectId ?? row.projectId;
         final nextSectionId = updateSection
             ? (clearSectionId ? null : sectionId)
+            : nextProjectId != row.projectId
+            ? null
             : row.sectionId;
         final nextParentId = isRoot
             ? (updateParent ? (clearParentId ? null : parentId) : row.parentId)
@@ -542,6 +628,7 @@ class DriftTaskRepository implements TaskRepository {
     required TaskSchedule schedule,
     required String projectId,
   }) async {
+    await _access.task(id, destinationProjectId: projectId);
     final now = DateTime.now().toUtc();
     await _db.transaction(() async {
       final rows = await (_db.select(
@@ -608,6 +695,7 @@ class DriftTaskRepository implements TaskRepository {
 
   @override
   Future<void> completeTask(String id) async {
+    await _access.task(id);
     final now = DateTime.now().toUtc();
     await _db.transaction(() async {
       await _kanbanTransitions.completeSubtreeInTransaction(id, timestamp: now);
@@ -616,6 +704,7 @@ class DriftTaskRepository implements TaskRepository {
 
   @override
   Future<void> uncompleteTask(String id) async {
+    await _access.task(id);
     final now = DateTime.now().toUtc();
     await _db.transaction(() async {
       await _kanbanTransitions.restoreSubtreeInTransaction(id, timestamp: now);
@@ -627,6 +716,9 @@ class DriftTaskRepository implements TaskRepository {
 
   @override
   Future<DeletedTaskBatch> deleteTasks(Set<String> ids) async {
+    for (final id in ids) {
+      await _access.task(id);
+    }
     final now = DateTime.now().toUtc();
     final undoUntil = DateTime.fromMillisecondsSinceEpoch(
       (now.add(_deleteUndoWindow).millisecondsSinceEpoch ~/ 1000) * 1000,
@@ -658,6 +750,7 @@ class DriftTaskRepository implements TaskRepository {
     String id, {
     required bool includeFollowing,
   }) async {
+    await _access.task(id);
     final now = DateTime.now().toUtc();
     final localNow = now.toLocal();
     final undoUntil = DateTime.fromMillisecondsSinceEpoch(
@@ -742,6 +835,9 @@ class DriftTaskRepository implements TaskRepository {
 
   @override
   Future<bool> restoreDeletedTasks(DeletedTaskBatch batch) async {
+    for (final id in batch.taskIds) {
+      await _access.task(id);
+    }
     if (batch.taskIds.isEmpty ||
         DateTime.now().toUtc().isAfter(batch.undoUntil)) {
       return false;
@@ -803,7 +899,9 @@ class DriftTaskRepository implements TaskRepository {
         DateTime.now(),
         advanceFirst: true,
       );
-      if (nextSchedule == null) continue;
+      if (nextSchedule == null) {
+        continue;
+      }
       final nextRootId = _recurringTaskId(
         recurrence,
         _occurrenceKey(nextSchedule),
@@ -1088,7 +1186,9 @@ class DriftTaskRepository implements TaskRepository {
       localNow,
       advanceFirst: advanceFirst,
     );
-    if (nextSchedule == null) return;
+    if (nextSchedule == null) {
+      return;
+    }
     final occurrenceKey = _occurrenceKey(nextSchedule);
     final nextRootId = _recurringTaskId(recurrence, occurrenceKey, row.id);
     if (rowById.containsKey(nextRootId) || await _taskExists(nextRootId)) {
@@ -1116,6 +1216,9 @@ class DriftTaskRepository implements TaskRepository {
             TasksCompanion.insert(
               id: idBySource[source.id]!,
               userId: source.userId,
+              scopeId: Value(source.scopeId),
+              createdBy: Value(source.createdBy),
+              assigneeIdsJson: Value(source.assigneeIdsJson),
               content: source.content,
               description: Value(source.description),
               projectId: source.projectId,
@@ -1145,7 +1248,11 @@ class DriftTaskRepository implements TaskRepository {
           SyncQueueCommand(
             type: 'task.create',
             clientId: idBySource[source.id],
-            payload: {'id': idBySource[source.id]},
+            payload: {
+              'id': idBySource[source.id],
+              if (source.scopeId != null) 'recurrenceSourceId': source.id,
+              if (source.scopeId != null) 'occurrenceKey': occurrenceKey,
+            },
           ),
         ],
       );
@@ -1306,6 +1413,10 @@ class DriftTaskRepository implements TaskRepository {
     List<String> labelNames,
     DateTime now,
   ) async {
+    final task = await (_db.select(
+      _db.tasks,
+    )..where((row) => row.id.equals(taskId))).getSingle();
+    final scopeId = task.scopeId;
     final seen = <String>{};
     for (final rawName in labelNames) {
       final name = rawName.trim();
@@ -1318,6 +1429,9 @@ class DriftTaskRepository implements TaskRepository {
                   (label) =>
                       label.name.equals(name) &
                       label.kind.equals(labelKindUser) &
+                      (scopeId == null
+                          ? label.scopeId.isNull()
+                          : label.scopeId.equals(scopeId)) &
                       label.isDeleted.equals(false),
                 )
                 ..limit(1))
@@ -1326,6 +1440,9 @@ class DriftTaskRepository implements TaskRepository {
           (await (_db.select(_db.labels)..where(
                     (label) =>
                         label.kind.equals(labelKindUser) &
+                        (scopeId == null
+                            ? label.scopeId.isNull()
+                            : label.scopeId.equals(scopeId)) &
                         label.isDeleted.equals(false),
                   ))
                   .get())
@@ -1340,6 +1457,7 @@ class DriftTaskRepository implements TaskRepository {
             .insert(
               LabelsCompanion.insert(
                 id: labelId,
+                scopeId: Value(scopeId),
                 userId: localUserId,
                 name: name,
                 kind: const Value(labelKindUser),
@@ -1359,6 +1477,16 @@ class DriftTaskRepository implements TaskRepository {
   }
 
   Future<void> _attachLabel(String taskId, String labelId, DateTime now) async {
+    await _access.task(taskId);
+    final task = await (_db.select(
+      _db.tasks,
+    )..where((row) => row.id.equals(taskId))).getSingle();
+    final label = await (_db.select(
+      _db.labels,
+    )..where((row) => row.id.equals(labelId))).getSingle();
+    if (task.scopeId != label.scopeId) {
+      throw const CollaborationException('cross_scope_label');
+    }
     await _db
         .into(_db.taskLabels)
         .insertOnConflictUpdate(
@@ -1377,6 +1505,13 @@ class DriftTaskRepository implements TaskRepository {
   }
 
   bool _matchesQuery(TaskItem task, TaskQuery query) {
+    if (query.creatorId != null && task.createdBy != query.creatorId) {
+      return false;
+    }
+    if (query.assigneeId != null &&
+        !task.assigneeIds.contains(query.assigneeId)) {
+      return false;
+    }
     final now = query.now ?? DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final due = task.dueDate;
@@ -1412,7 +1547,12 @@ class DriftTaskRepository implements TaskRepository {
     }
   }
 
-  TaskItem _mapTask(TaskRow row) => TaskItem(
+  TaskItem _mapTask(TaskRow row, {SharedScope? scope}) => TaskItem(
+    scopeId: row.scopeId,
+    createdBy: row.createdBy,
+    completedBy: row.completedBy,
+    assigneeIds: collaborationIds(row.assigneeIdsJson),
+    canEdit: row.scopeId == null || (scope?.canEdit ?? false),
     id: row.id,
     userId: row.userId,
     content: row.content,
@@ -1451,533 +1591,4 @@ class DriftTaskRepository implements TaskRepository {
   String? _scheduleJson(TaskSchedule? value) {
     return value?.toJsonString();
   }
-}
-
-class DriftProjectRepository implements ProjectRepository {
-  DriftProjectRepository(this._db, this._syncQueue, {Uuid? uuid})
-    : _uuid = uuid ?? const Uuid();
-
-  final AppDatabase _db;
-  final SyncQueueRepository _syncQueue;
-  final Uuid _uuid;
-
-  @override
-  Stream<List<ProjectItem>> watchProjects() {
-    final statement = _db.select(_db.projects)
-      ..where((project) => project.isDeleted.equals(false))
-      ..orderBy([
-        (project) => OrderingTerm.asc(project.orderKey),
-        (project) => OrderingTerm.asc(project.id),
-      ]);
-    return statement.watch().map((rows) => rows.map(_mapProject).toList());
-  }
-
-  @override
-  Future<ProjectItem?> findByName(String name) async {
-    final normalizedName = name.trim().toLowerCase();
-    final row =
-        (await (_db.select(
-              _db.projects,
-            )..where((project) => project.isDeleted.equals(false))).get())
-            .firstWhereOrNull(
-              (project) => project.name.trim().toLowerCase() == normalizedName,
-            );
-    return row == null ? null : _mapProject(row);
-  }
-
-  Future<List<ProjectItem>> _projects() async =>
-      (await (_db.select(
-            _db.projects,
-          )..where((p) => p.isDeleted.equals(false))).get())
-          .map(_mapProject)
-          .toList()
-        ..sort(compareProjects);
-
-  void _validateParent(
-    List<ProjectItem> projects,
-    String? id,
-    String? parentId,
-  ) {
-    if (!canParentProject(projects, projectId: id, parentId: parentId)) {
-      throw ArgumentError('Invalid parent project');
-    }
-  }
-
-  // ponytail: renumber siblings in O(n); use fractional keys if large groups need it.
-  Future<void> _writeProjectOrder(
-    List<ProjectItem> items,
-    String? parentId,
-    DateTime now,
-  ) async {
-    for (var index = 0; index < items.length; index++) {
-      final project = items[index];
-      final key = ((index + 1) * 1024).toString().padLeft(20, '0');
-      if (project.parentId == parentId && project.orderKey == key) continue;
-      await (_db.update(
-        _db.projects,
-      )..where((p) => p.id.equals(project.id))).write(
-        ProjectsCompanion(
-          parentId: Value(parentId),
-          orderKey: Value(key),
-          updatedAt: Value(now),
-        ),
-      );
-      await _syncQueue.enqueue(
-        type: 'project.update',
-        clientId: project.id,
-        payload: {'id': project.id, 'parentId': parentId, 'orderKey': key},
-      );
-    }
-  }
-
-  @override
-  Future<String> createProject(
-    String name, {
-    String? color,
-    String? parentId,
-  }) => _db.transaction(() async {
-    final trimmed = name.trim();
-    if (trimmed.isEmpty) throw ArgumentError('Project name is empty');
-    final items = await _projects();
-    _validateParent(items, null, parentId);
-    final existing = items.firstWhereOrNull(
-      (p) => p.name.trim().toLowerCase() == trimmed.toLowerCase(),
-    );
-    if (existing != null) {
-      if (existing.parentId != parentId) {
-        throw ArgumentError('Project name already exists');
-      }
-      return existing.id;
-    }
-    final normalizedColor = color == null
-        ? nextProjectColor(items)
-        : normalizeProjectColor(color);
-    if (normalizedColor == null || !isPaletteProjectColor(normalizedColor)) {
-      throw ArgumentError.value(color, 'color', 'Unsupported project color');
-    }
-    final now = DateTime.now().toUtc();
-    final id = _uuid.v4();
-    final parents = projectParents(items);
-    final siblings = items
-        .where((p) => p.id != inboxProjectId && parents[p.id] == parentId)
-        .toList();
-    await _writeProjectOrder(siblings, parentId, now);
-    final orderKey = ((siblings.length + 1) * 1024).toString().padLeft(20, '0');
-    await _db
-        .into(_db.projects)
-        .insert(
-          ProjectsCompanion.insert(
-            id: id,
-            userId: localUserId,
-            name: trimmed,
-            color: Value(normalizedColor),
-            parentId: Value(parentId),
-            orderKey: orderKey,
-            createdAt: now,
-            updatedAt: now,
-          ),
-        );
-    await _syncQueue.enqueue(
-      type: 'project.create',
-      clientId: id,
-      payload: {
-        'id': id,
-        'name': trimmed,
-        'color': normalizedColor,
-        'parentId': parentId,
-        'orderKey': orderKey,
-      },
-    );
-    return id;
-  });
-
-  @override
-  Future<void> moveProject(
-    String id, {
-    required String? parentId,
-    String? beforeProjectId,
-  }) => _db.transaction(() async {
-    final items = await _projects();
-    final project = items.firstWhereOrNull((p) => p.id == id);
-    if (project == null || project.isArchived || id == inboxProjectId) {
-      throw ArgumentError('Project cannot be moved');
-    }
-    _validateParent(items, id, parentId);
-    final parents = projectParents(items);
-    final siblings = items
-        .where(
-          (p) =>
-              p.id != inboxProjectId && p.id != id && parents[p.id] == parentId,
-        )
-        .toList();
-    if (beforeProjectId == id && parents[id] == parentId) return;
-    final index = beforeProjectId == null
-        ? siblings.length
-        : siblings.indexWhere((p) => p.id == beforeProjectId);
-    if (index < 0) throw ArgumentError('Invalid project position');
-    siblings.insert(index, project);
-    final now = DateTime.now().toUtc();
-    await _writeProjectOrder(siblings, parentId, now);
-    if (parents[id] != parentId) {
-      await _writeProjectOrder(
-        items
-            .where(
-              (p) =>
-                  p.id != inboxProjectId &&
-                  p.id != id &&
-                  parents[p.id] == parents[id],
-            )
-            .toList(),
-        parents[id],
-        now,
-      );
-    }
-  });
-
-  @override
-  Future<void> updateProject(String id, UpdateProjectPatch patch) async {
-    if (id == inboxProjectId) {
-      throw ArgumentError.value(id, 'id', 'Inbox project cannot be changed');
-    }
-    final normalizedName = patch.name?.trim();
-    if (patch.name != null && normalizedName!.isEmpty) {
-      throw ArgumentError.value(
-        patch.name,
-        'patch.name',
-        'Project name is empty',
-      );
-    }
-    if (normalizedName != null) {
-      final existing = await findByName(normalizedName);
-      if (existing != null && existing.id != id) {
-        throw ArgumentError.value(
-          patch.name,
-          'patch.name',
-          'Project name already exists',
-        );
-      }
-    }
-    final normalizedColor = patch.color == null
-        ? null
-        : normalizeProjectColor(patch.color);
-    if (patch.color != null &&
-        (normalizedColor == null || !isPaletteProjectColor(normalizedColor))) {
-      throw ArgumentError.value(
-        patch.color,
-        'patch.color',
-        'Unsupported project color',
-      );
-    }
-    if (patch.icon != null &&
-        !ProjectIcon.values.any((icon) => icon.name == patch.icon)) {
-      throw ArgumentError.value(
-        patch.icon,
-        'patch.icon',
-        'Unsupported project icon',
-      );
-    }
-    if (normalizedName == null &&
-        patch.icon == null &&
-        normalizedColor == null &&
-        patch.isFavorite == null) {
-      return;
-    }
-    final now = DateTime.now().toUtc();
-    await _db.transaction(() async {
-      await (_db.update(
-        _db.projects,
-      )..where((project) => project.id.equals(id))).write(
-        ProjectsCompanion(
-          icon: patch.icon == null ? const Value.absent() : Value(patch.icon),
-          name: normalizedName == null
-              ? const Value.absent()
-              : Value(normalizedName),
-          color: normalizedColor == null
-              ? const Value.absent()
-              : Value(normalizedColor),
-          isFavorite: patch.isFavorite == null
-              ? const Value.absent()
-              : Value(patch.isFavorite!),
-          updatedAt: Value(now),
-        ),
-      );
-      await _syncQueue.enqueue(
-        type: 'project.update',
-        clientId: id,
-        payload: {
-          'id': id,
-          'name': ?normalizedName,
-          'color': ?normalizedColor,
-          'isFavorite': ?patch.isFavorite,
-          'icon': ?patch.icon,
-        },
-      );
-    });
-  }
-
-  @override
-  Future<void> deleteProject(String id) async {
-    if (id == inboxProjectId) {
-      return;
-    }
-    final now = DateTime.now().toUtc();
-    await _db.transaction(() async {
-      final project =
-          await (_db.select(_db.projects)
-                ..where(
-                  (project) =>
-                      project.id.equals(id) & project.isDeleted.equals(false),
-                )
-                ..limit(1))
-              .getSingleOrNull();
-      if (project == null) {
-        return;
-      }
-
-      final items = await _projects();
-      final parents = projectParents(items);
-      final parentId = parents[id];
-      final children = items
-          .where((p) => p.id != inboxProjectId && parents[p.id] == id)
-          .toList();
-      final siblings = <ProjectItem>[
-        for (final item in items.where(
-          (p) => p.id != inboxProjectId && parents[p.id] == parentId,
-        ))
-          if (item.id == id) ...children else item,
-      ];
-      await _writeProjectOrder(siblings, parentId, now);
-
-      final tasks =
-          await (_db.select(_db.tasks)..where(
-                (task) =>
-                    task.projectId.equals(id) & task.isDeleted.equals(false),
-              ))
-              .get();
-      for (final task in tasks) {
-        await (_db.update(
-          _db.tasks,
-        )..where((row) => row.id.equals(task.id))).write(
-          TasksCompanion(
-            projectId: const Value(inboxProjectId),
-            sectionId: const Value(null),
-            updatedAt: Value(now),
-          ),
-        );
-        await _syncQueue.enqueue(
-          type: 'task.move',
-          clientId: task.id,
-          payload: {
-            'id': task.id,
-            'projectId': inboxProjectId,
-            'sectionId': null,
-            'parentId': task.parentId,
-            'orderKey': task.orderKey,
-          },
-        );
-      }
-
-      final settingsBefore = await (_db.select(
-        _db.kanbanSettings,
-      )..where((row) => row.id.equals(kanbanSettingsPrimaryId))).getSingle();
-      await (_db.update(
-        _db.projects,
-      )..where((project) => project.id.equals(id))).write(
-        ProjectsCompanion(isDeleted: const Value(true), updatedAt: Value(now)),
-      );
-      await _db.repairKanbanSettings(now: now);
-      final settingsAfter = await (_db.select(
-        _db.kanbanSettings,
-      )..where((row) => row.id.equals(kanbanSettingsPrimaryId))).getSingle();
-      await _syncQueue.enqueueBatch([
-        SyncQueueCommand(
-          type: 'project.delete',
-          clientId: id,
-          payload: {'id': id},
-        ),
-        if (settingsBefore.selectedProjectIdsJson !=
-            settingsAfter.selectedProjectIdsJson)
-          SyncQueueCommand(
-            type: 'kanban.settings.projects.set',
-            clientId: kanbanSettingsPrimaryId,
-            payload: {
-              'id': kanbanSettingsPrimaryId,
-              'selectedProjectIdsJson': settingsAfter.selectedProjectIdsJson,
-              'changedAt': now.toIso8601String(),
-            },
-          ),
-        if (settingsBefore.focusStatusLabelId !=
-            settingsAfter.focusStatusLabelId)
-          SyncQueueCommand(
-            type: 'kanban.settings.focus.set',
-            clientId: kanbanSettingsPrimaryId,
-            payload: {
-              'id': kanbanSettingsPrimaryId,
-              'focusStatusLabelId': settingsAfter.focusStatusLabelId,
-              'changedAt': now.toIso8601String(),
-            },
-          ),
-      ], occurredAt: now);
-    });
-  }
-
-  ProjectItem _mapProject(ProjectRow row) => ProjectItem(
-    id: row.id,
-    userId: row.userId,
-    name: row.name,
-    color: row.color,
-    icon: row.icon,
-    parentId: row.parentId,
-    viewStyle: row.viewStyle,
-    isFavorite: row.isFavorite,
-    isArchived: row.isArchived,
-    isDeleted: row.isDeleted,
-    orderKey: row.orderKey,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-  );
-}
-
-class DriftLabelRepository implements LabelRepository {
-  DriftLabelRepository(this._db, this._syncQueue, {Uuid? uuid})
-    : _uuid = uuid ?? const Uuid();
-
-  final AppDatabase _db;
-  final SyncQueueRepository _syncQueue;
-  final Uuid _uuid;
-
-  @override
-  Stream<List<LabelItem>> watchLabels() {
-    final statement = _db.select(_db.labels)
-      ..where(
-        (label) =>
-            label.kind.equals(labelKindUser) & label.isDeleted.equals(false),
-      )
-      ..orderBy([(label) => OrderingTerm.asc(label.orderKey)]);
-    return statement.watch().map((rows) => rows.map(_mapLabel).toList());
-  }
-
-  @override
-  Future<LabelItem?> findByName(String name) async {
-    final normalizedName = name.trim().toLowerCase();
-    final row =
-        (await (_db.select(_db.labels)..where(
-                  (label) =>
-                      label.kind.equals(labelKindUser) &
-                      label.isDeleted.equals(false),
-                ))
-                .get())
-            .firstWhereOrNull(
-              (label) => label.name.trim().toLowerCase() == normalizedName,
-            );
-    return row == null ? null : _mapLabel(row);
-  }
-
-  @override
-  Future<String> createLabel(String name, {String? icon}) async {
-    if (icon != null) _validateIcon(icon);
-    final existing = await findByName(name);
-    if (existing != null) {
-      return existing.id;
-    }
-    final now = DateTime.now().toUtc();
-    final id = _uuid.v4();
-    await _db.transaction(() async {
-      await _db
-          .into(_db.labels)
-          .insert(
-            LabelsCompanion.insert(
-              id: id,
-              userId: localUserId,
-              name: name.trim(),
-              icon: Value(icon),
-              kind: const Value(labelKindUser),
-              orderKey: now.microsecondsSinceEpoch.toString().padLeft(20, '0'),
-              createdAt: now,
-              updatedAt: now,
-            ),
-          );
-      await _syncQueue.enqueue(
-        type: 'label.create',
-        clientId: id,
-        payload: {'id': id, 'name': name.trim(), 'icon': ?icon},
-      );
-    });
-    return id;
-  }
-
-  void _validateIcon(String icon) {
-    if (!LabelIcon.values.any((value) => value.name == icon)) {
-      throw ArgumentError.value(icon, 'icon', 'Unknown label icon');
-    }
-  }
-
-  @override
-  Future<void> updateLabelIcon(String id, String icon) async {
-    _validateIcon(icon);
-    await _db.transaction(() async {
-      final changed =
-          await (_db.update(_db.labels)..where(
-                (row) =>
-                    row.id.equals(id) &
-                    row.kind.equals(labelKindUser) &
-                    row.isDeleted.equals(false),
-              ))
-              .write(
-                LabelsCompanion(
-                  icon: Value(icon),
-                  updatedAt: Value(DateTime.now().toUtc()),
-                ),
-              );
-      if (changed == 0) throw StateError('Label no longer exists');
-      await _syncQueue.enqueue(
-        type: 'label.update',
-        clientId: id,
-        payload: {'id': id, 'icon': icon},
-      );
-    });
-  }
-
-  @override
-  Future<void> deleteLabel(String id) async {
-    final now = DateTime.now().toUtc();
-    await _db.transaction(() async {
-      final label =
-          await (_db.select(_db.labels)
-                ..where(
-                  (label) =>
-                      label.id.equals(id) &
-                      label.kind.equals(labelKindUser) &
-                      label.isDeleted.equals(false),
-                )
-                ..limit(1))
-              .getSingleOrNull();
-      if (label == null) {
-        return;
-      }
-      await (_db.update(
-        _db.labels,
-      )..where((label) => label.id.equals(id))).write(
-        LabelsCompanion(isDeleted: const Value(true), updatedAt: Value(now)),
-      );
-      await _syncQueue.enqueue(
-        type: 'label.delete',
-        clientId: id,
-        payload: {'id': id},
-      );
-    });
-  }
-
-  LabelItem _mapLabel(LabelRow row) => LabelItem(
-    id: row.id,
-    userId: row.userId,
-    name: row.name,
-    color: row.color,
-    icon: row.icon,
-    orderKey: row.orderKey,
-    isFavorite: row.isFavorite,
-    isDeleted: row.isDeleted,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-  );
 }
