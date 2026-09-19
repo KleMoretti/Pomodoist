@@ -149,3 +149,4 @@ docs/superpowers/specs/*
 !docs/superpowers/specs/2026-09-13-two-minor-release-refactor-design.md
 
 !apps/chrome-extension/.gitignore
+apps/flutter/assets/branding/app_icons/plan.md
