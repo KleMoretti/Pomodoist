@@ -1,4 +1,7 @@
-import 'package:shadcn_ui/shadcn_ui.dart' show ShadSelect, ShadButton;
+import 'package:pomodoist/domain/models/settings/app_language.dart';
+import 'package:pomodoist/ui/core/localization/app_locale.dart';
+import 'package:shadcn_ui/shadcn_ui.dart'
+    show ShadSelect, ShadButton, LucideIcons;
 import 'support/test_app.dart';
 // ignore_for_file: deprecated_member_use
 
@@ -11,44 +14,47 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pomodoist/app/config/account_providers.dart';
-import 'package:pomodoist/app/config/app_language.dart';
-import 'package:pomodoist/app/routing/app_startup_gate.dart';
-import 'package:pomodoist/app/config/app_theme_mode.dart';
-import 'package:pomodoist/app/config/keyboard_shortcuts.dart';
-import 'package:pomodoist/app/platform/macos_app_menu.dart';
-import 'package:pomodoist/app/config/providers.dart';
-import 'package:pomodoist/app/routing/router.dart';
-import 'package:pomodoist/app/theme/app_theme.dart';
-import 'package:pomodoist/app/widgets/resizable_dialog.dart';
-import 'package:pomodoist/core/db/app_database.dart';
-import 'package:pomodoist/core/time/clock.dart';
-import 'package:pomodoist/features/billing/billing.dart';
-import 'package:pomodoist/features/focus/domain/focus_models.dart';
-import 'package:pomodoist/features/focus/presentation/focus_screen.dart';
-import 'package:pomodoist/features/onboarding/onboarding_gate.dart';
-import 'package:pomodoist/features/planning/presentation/today_screen.dart';
-import 'package:pomodoist/features/productivity/domain/achievement_models.dart';
-import 'package:pomodoist/features/productivity/domain/productivity_models.dart';
-import 'package:pomodoist/features/productivity/presentation/reports_screen.dart';
-import 'package:pomodoist/features/settings/presentation/keyboard_shortcuts_screen.dart';
-import 'package:pomodoist/features/settings/presentation/settings_screen.dart';
-import 'package:pomodoist/features/tasks/domain/task_models.dart';
-import 'package:pomodoist/features/tasks/presentation/browse_screen.dart';
-import 'package:pomodoist/features/tasks/presentation/inbox_screen.dart';
-import 'package:pomodoist/features/tasks/presentation/kanban/kanban_screen.dart';
-import 'package:pomodoist/features/tasks/presentation/priority_matrix_screen.dart';
-import 'package:pomodoist/features/tasks/presentation/search_screen.dart';
-import 'package:pomodoist/features/tasks/presentation/timeline_screen.dart';
-import 'package:pomodoist/features/tasks/presentation/upcoming_screen.dart';
-import 'package:pomodoist/features/tasks/presentation/widgets/quick_add_bar.dart';
-import 'package:pomodoist/l10n/app_localizations.dart';
+import 'package:pomodoist/config/account_providers.dart';
+import 'package:pomodoist/config/app_language.dart';
+import 'package:pomodoist/ui/core/widgets/app_startup_gate.dart';
+import 'package:pomodoist/ui/core/view_models/app_theme_mode_view_model.dart';
+import 'package:pomodoist/config/keyboard_shortcuts.dart';
+import 'package:pomodoist/ui/core/platform/macos_app_menu.dart';
+import 'package:pomodoist/config/providers.dart';
+import 'package:pomodoist/routing/router.dart';
+import 'package:pomodoist/ui/core/themes/app_theme.dart';
+import 'package:pomodoist/ui/core/widgets/resizable_dialog.dart';
+import 'package:pomodoist/data/services/local/database/app_database.dart';
+import 'package:pomodoist/utils/clock.dart';
+import 'package:pomodoist/config/billing_dependencies.dart';
+import 'package:pomodoist/domain/models/focus/focus_models.dart';
+import 'package:pomodoist/ui/focus/widgets/focus_screen.dart';
+import 'package:pomodoist/ui/onboarding/widgets/onboarding_gate.dart';
+import 'package:pomodoist/ui/planning/widgets/today_screen.dart';
+import 'package:pomodoist/domain/models/productivity/achievement_models.dart';
+import 'package:pomodoist/domain/models/productivity/productivity_models.dart';
+import 'package:pomodoist/ui/productivity/widgets/reports_screen.dart';
+import 'package:pomodoist/ui/settings/widgets/keyboard_shortcuts_screen.dart';
+import 'package:pomodoist/ui/settings/widgets/settings_screen.dart';
+import 'package:pomodoist/domain/models/tasks/task_models.dart';
+import 'package:pomodoist/ui/tasks/widgets/browse_screen.dart';
+import 'package:pomodoist/ui/tasks/widgets/inbox_screen.dart';
+import 'package:pomodoist/ui/tasks/widgets/kanban_screen.dart';
+import 'package:pomodoist/ui/tasks/widgets/priority_matrix_screen.dart';
+import 'package:pomodoist/ui/tasks/widgets/search_screen.dart';
+import 'package:pomodoist/ui/tasks/widgets/timeline_screen.dart';
+import 'package:pomodoist/ui/tasks/widgets/upcoming_screen.dart';
+import 'package:pomodoist/ui/tasks/widgets/quick_add_bar.dart';
+import 'package:pomodoist/ui/core/localization/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _wideSidebarFrameKey = Key('wide-sidebar-frame');
 const _wideSidebarResizeHandleKey = Key('wide-sidebar-resize-handle');
 const _wideSidebarEdgeHandleKey = Key('wide-sidebar-edge-reveal-handle');
 const _shellMenuButtonKey = Key('shell-menu-button');
+const _workProjectScopeId = 'scope-work';
+const _longProjectName =
+    'A shared project whose name is far too long for a single row';
 
 void main() {
   setUpAll(loadTestAppResources);
@@ -1040,6 +1046,142 @@ void main() {
     );
     await _disposeApp(tester);
   });
+
+  testWidgets('shared project badge follows the project name', (tester) async {
+    final harness = await _pumpWideApp(
+      tester,
+      workProjectScopeId: _workProjectScopeId,
+    );
+
+    _expectBadgeFollowsName(
+      tester,
+      row: find.byKey(ValueKey('sidebar-project-${harness.workProjectId}')),
+      name: 'Work',
+      count: '1',
+    );
+
+    await tester.tap(find.byKey(const Key('sidebar-projects-link')));
+    await _pumpFrames(tester);
+
+    _expectBadgeFollowsName(
+      tester,
+      row: find.byKey(
+        ValueKey('projects-screen-project-${harness.workProjectId}'),
+      ),
+      name: 'Work',
+      count: '1',
+    );
+    await _disposeApp(tester);
+  });
+
+  testWidgets('shared project badge stays beside a truncated name', (
+    tester,
+  ) async {
+    final harness = await _pumpWideApp(
+      tester,
+      workProjectName: _longProjectName,
+      workProjectScopeId: _workProjectScopeId,
+    );
+
+    final sidebarRow = find.byKey(
+      ValueKey('sidebar-project-${harness.workProjectId}'),
+    );
+    final sidebarName = tester.getRect(
+      find.descendant(of: sidebarRow, matching: find.text(_longProjectName)),
+    );
+    expect(sidebarName.width, lessThan(tester.getSize(sidebarRow).width));
+    _expectBadgeFollowsName(
+      tester,
+      row: sidebarRow,
+      name: _longProjectName,
+      count: '1',
+      nameFits: false,
+    );
+
+    await tester.tap(find.byKey(const Key('sidebar-projects-link')));
+    await _pumpFrames(tester);
+
+    _expectBadgeFollowsName(
+      tester,
+      row: find.byKey(
+        ValueKey('projects-screen-project-${harness.workProjectId}'),
+      ),
+      name: _longProjectName,
+      count: '1',
+    );
+    await _disposeApp(tester);
+  });
+
+  testWidgets('a project without a scope renders no badge', (tester) async {
+    final harness = await _pumpWideApp(tester);
+
+    _expectNoBadge(
+      tester,
+      find.byKey(ValueKey('sidebar-project-${harness.workProjectId}')),
+    );
+
+    await tester.tap(find.byKey(const Key('sidebar-projects-link')));
+    await _pumpFrames(tester);
+
+    _expectNoBadge(
+      tester,
+      find.byKey(ValueKey('projects-screen-project-${harness.workProjectId}')),
+    );
+    await _disposeApp(tester);
+  });
+}
+
+/// Asserts the shared badge sits immediately after the project name and not
+/// next to the trailing task count.
+void _expectBadgeFollowsName(
+  WidgetTester tester, {
+  required Finder row,
+  required String name,
+  required String count,
+  bool nameFits = true,
+}) {
+  final badge = find.descendant(
+    of: row,
+    matching: find.byIcon(LucideIcons.users),
+  );
+  expect(badge, findsOneWidget);
+  expect(
+    find.descendant(of: row, matching: find.byIcon(LucideIcons.triangleAlert)),
+    findsNothing,
+  );
+  expect(tester.getSize(badge), const Size(14, 14));
+
+  final nameRect = tester.getRect(
+    find.descendant(of: row, matching: find.text(name)),
+  );
+  final badgeRect = tester.getRect(badge);
+  final countRect = tester.getRect(
+    find.descendant(of: row, matching: find.text(count)),
+  );
+
+  // Only the 4 px gap separates the name from its badge, whether the name
+  // fits or is ellipsized.
+  expect(badgeRect.left - nameRect.right, closeTo(4, 0.1));
+  expect(badgeRect.center.dy, closeTo(nameRect.center.dy, 1));
+  // Once the name fills the row, the badge still precedes the count, which
+  // keeps its trailing position; a name that fits leaves the count far away.
+  expect(badgeRect.right, lessThanOrEqualTo(countRect.left));
+  if (nameFits) {
+    expect(countRect.left - badgeRect.right, greaterThan(20));
+  }
+  // The badge stays inside the row instead of being pushed out of it.
+  expect(badgeRect.right, lessThanOrEqualTo(tester.getRect(row).right));
+}
+
+void _expectNoBadge(WidgetTester tester, Finder row) {
+  expect(
+    find.descendant(of: row, matching: find.byIcon(LucideIcons.users)),
+    findsNothing,
+  );
+  expect(
+    find.descendant(of: row, matching: find.byIcon(LucideIcons.triangleAlert)),
+    findsNothing,
+  );
 }
 
 class _TestApp extends ConsumerWidget {
@@ -1085,12 +1227,16 @@ Future<_SidebarHarness> _pumpWideApp(
   WidgetTester tester, {
   bool hasAccountPro = false,
   VoiceRecognitionController? voiceController,
+  String workProjectName = 'Work',
+  String? workProjectScopeId,
 }) async {
   return _pumpApp(
     tester,
     size: const Size(1200, 800),
     hasAccountPro: hasAccountPro,
     voiceController: voiceController,
+    workProjectName: workProjectName,
+    workProjectScopeId: workProjectScopeId,
   );
 }
 
@@ -1116,6 +1262,8 @@ Future<_SidebarHarness> _pumpApp(
   FocusIntervalItem? activeInterval,
   bool hasAccountPro = false,
   VoiceRecognitionController? voiceController,
+  String workProjectName = 'Work',
+  String? workProjectScopeId,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -1133,7 +1281,8 @@ Future<_SidebarHarness> _pumpApp(
   final project = ProjectItem(
     id: workProjectId,
     userId: localUserId,
-    name: 'Work',
+    name: workProjectName,
+    scopeId: workProjectScopeId,
     color: '#3B6EA8',
     orderKey: 'b',
     createdAt: createdAt,
@@ -1190,7 +1339,7 @@ Future<_SidebarHarness> _pumpApp(
     ProviderScope(
       overrides: [
         appStartupProvider.overrideWith((ref) => Future<void>.value()),
-        appStartupLifecycleProvider.overrideWith((ref) {}),
+        appStartupViewModelProvider.overrideWith(_ReadyAppStartupViewModel.new),
         shortcutTargetPlatformProvider.overrideWithValue(TargetPlatform.macOS),
         taskStartNotificationCoordinatorProvider.overrideWith((ref) {}),
         reengagementNotificationCoordinatorProvider.overrideWith((ref) {}),
@@ -1387,7 +1536,9 @@ double _wideSidebarWidth(WidgetTester tester) {
 Future<void> _pumpFrames(WidgetTester tester) async {
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 250));
-  await tester.pump();
+  for (var pump = 0; pump < 8; pump++) {
+    await tester.pump();
+  }
 }
 
 Future<void> _disposeApp(WidgetTester tester) async {
@@ -1445,4 +1596,9 @@ FocusIntervalItem _activeInterval(DateTime now) {
     createdAt: now,
     updatedAt: now,
   );
+}
+
+class _ReadyAppStartupViewModel extends AppStartupViewModel {
+  @override
+  Future<void> build() async {}
 }

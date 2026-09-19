@@ -1,20 +1,30 @@
+import 'package:pomodoist/domain/models/settings/task_preferences.dart';
+import 'package:pomodoist/utils/result.dart';
+import 'package:pomodoist/data/repositories/kanban/kanban_repository.dart';
+import 'package:pomodoist/data/repositories/projects/project_repository.dart';
+import 'package:pomodoist/data/repositories/tasks/task_repository.dart';
 import 'support/test_app.dart';
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:drift/drift.dart' hide isNotNull, isNull;
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pomodoist/app/config/providers.dart';
-import 'package:pomodoist/app/theme/app_theme.dart';
-import 'package:pomodoist/core/time/clock.dart';
-import 'package:pomodoist/core/db/app_database.dart' hide KanbanSettings;
-import 'package:pomodoist/features/focus/domain/focus_models.dart';
-import 'package:pomodoist/features/planning/data/quick_add_service.dart';
-import 'package:pomodoist/features/planning/domain/quick_add_parser.dart';
-import 'package:pomodoist/features/tasks/domain/task_models.dart';
-import 'package:pomodoist/features/tasks/presentation/kanban/kanban_board_controller.dart';
-import 'package:pomodoist/features/tasks/presentation/kanban/kanban_screen.dart';
-import 'package:pomodoist/l10n/app_localizations.dart';
+import 'package:pomodoist/config/providers.dart';
+import 'package:pomodoist/ui/core/themes/app_theme.dart';
+import 'package:pomodoist/utils/clock.dart';
+import 'package:pomodoist/data/services/local/database/app_database.dart'
+    hide KanbanSettings;
+import 'package:pomodoist/domain/models/focus/focus_models.dart';
+import 'package:pomodoist/domain/use_cases/quick_add/quick_add_use_case.dart';
+import 'package:pomodoist/domain/models/planning/quick_add_parser.dart';
+import 'package:pomodoist/data/repositories/kanban/kanban_repository_impl.dart';
+import 'package:pomodoist/domain/models/tasks/task_models.dart';
+import 'package:pomodoist/ui/tasks/view_models/kanban_board_controller.dart';
+import 'package:pomodoist/ui/tasks/widgets/kanban_screen.dart';
+import 'package:pomodoist/ui/core/localization/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -99,6 +109,126 @@ void main() {
     expect(harness.tasks.created.single.content, 'Added in Todo');
     expect(harness.tasks.created.single.kanbanStatusId, kanbanStatusTodoId);
     expect(harness.tasks.created.single.projectId, inboxProjectId);
+  });
+
+  testWidgets('renders one column per status with two projects on the board', (
+    tester,
+  ) async {
+    final board = await _mixedScopeBoard(tester);
+
+    await _pumpKanban(tester, width: 1200, snapshot: board);
+
+    expect(board.statuses, hasLength(4));
+    for (final statusId in const [
+      kanbanStatusBacklogId,
+      kanbanStatusTodoId,
+      kanbanStatusInProgressId,
+      kanbanStatusDoneId,
+    ]) {
+      expect(find.byKey(Key('kanban-column-$statusId')), findsOneWidget);
+    }
+    expect(
+      find.byKey(const Key('kanban-column-scope:kanban-status-backlog-v1')),
+      findsNothing,
+    );
+    expect(
+      find.byWidgetPredicate((widget) {
+        final key = widget.key;
+        return key is ValueKey<String> && key.value.contains('scope:');
+      }),
+      findsNothing,
+    );
+    expect(find.text('Personal root'), findsOneWidget);
+    expect(find.text('Shared root'), findsOneWidget);
+  });
+
+  testWidgets('renders the shared card before its status labels are loaded', (
+    tester,
+  ) async {
+    final board = await _mixedScopeBoard(tester, mirrorStatusLabels: false);
+
+    await _pumpKanban(tester, width: 1200, snapshot: board);
+
+    expect(board.statuses, hasLength(4));
+    expect(find.text('Shared root'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(Key('kanban-column-$kanbanStatusInProgressId')),
+        matching: find.text('Shared root'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('selecting only a shared project without status labels shows an '
+      'empty board', (tester) async {
+    final board = await _mixedScopeBoard(
+      tester,
+      mirrorStatusLabels: false,
+      selectPersonalProject: false,
+    );
+    expect(board.statuses, isEmpty);
+
+    await _pumpKanban(tester, width: 390, snapshot: board);
+
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const Key('kanban-empty-board')), findsOneWidget);
+    expect(
+      find.byWidgetPredicate((widget) {
+        final key = widget.key;
+        return key is ValueKey<String> &&
+            key.value.startsWith('kanban-column-');
+      }),
+      findsNothing,
+    );
+
+    // The board has no Backlog column to add into, so the control that needs one
+    // stays disabled instead of dereferencing a status that is not there.
+    await tester.tap(find.byKey(const Key('kanban-global-add')));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const Key('kanban-add-input')), findsNothing);
+  });
+
+  testWidgets('highlights a merged column focused through a member status', (
+    tester,
+  ) async {
+    final board = await _mixedScopeBoard(
+      tester,
+      focusStatusLabelId: 'scope:$kanbanStatusInProgressId',
+    );
+    expect(
+      board.settings.focusStatusLabelId,
+      'scope:$kanbanStatusInProgressId',
+    );
+
+    await _pumpKanban(tester, width: 1200, snapshot: board);
+
+    final focused = _columnBackground(tester, kanbanStatusInProgressId);
+    for (final statusId in const [
+      kanbanStatusBacklogId,
+      kanbanStatusTodoId,
+      kanbanStatusDoneId,
+    ]) {
+      expect(_columnBackground(tester, statusId), isNot(focused));
+    }
+  });
+
+  testWidgets('expands the merged column that holds a member focus status', (
+    tester,
+  ) async {
+    final board = await _mixedScopeBoard(
+      tester,
+      focusStatusLabelId: 'scope:$kanbanStatusInProgressId',
+    );
+
+    await _pumpKanban(tester, width: 390, snapshot: board);
+
+    expect(
+      find.byKey(const Key('kanban-add-kanban-status-in-progress-v1')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('hiding Done keeps card completion available', (tester) async {
@@ -348,7 +478,7 @@ Future<_KanbanHarness> _pumpKanban(
   final kanban = _FakeKanbanRepository(board);
   final tasks = _FakeTaskRepository();
   final projects = _FakeProjectRepository(board.availableProjects);
-  final quickAdd = QuickAddService(
+  final quickAdd = QuickAddUseCase(
     parser: const QuickAddParser(),
     taskRepository: tasks,
     projectRepository: projects,
@@ -391,6 +521,130 @@ Future<_KanbanHarness> _pumpKanban(
   );
   await tester.pumpAndSettle();
   return _KanbanHarness(kanban: kanban, tasks: tasks);
+}
+
+/// A board over the seeded personal project and a shared one, so that every
+/// status is a merged column whose representative is the personal label. The
+/// shared scope's mirrored status labels, and the personal project itself, can
+/// be left out to build the board a client sees before they are pulled.
+Future<KanbanBoardSnapshot> _mixedScopeBoard(
+  WidgetTester tester, {
+  String? focusStatusLabelId,
+  bool mirrorStatusLabels = true,
+  bool selectPersonalProject = true,
+}) async {
+  final db = AppDatabase(NativeDatabase.memory());
+  addTearDown(db.close);
+  // Drift streams only emit off the test's fake clock, so the board has to be
+  // read in the real async zone before pumping the screen.
+  final board = await tester.runAsync(() async {
+    await db.ensureSeedData();
+    final now = DateTime.utc(2026, 7, 10, 9);
+    await db
+        .into(db.projects)
+        .insert(
+          ProjectsCompanion.insert(
+            id: 'project-shared',
+            userId: localUserId,
+            name: 'Shared',
+            scopeId: const Value('scope'),
+            orderKey: '2',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    await db
+        .into(db.sharedScopes)
+        .insert(
+          SharedScopesCompanion.insert(
+            id: 'scope',
+            dataJson: jsonEncode({
+              'id': 'scope',
+              'rootProjectId': 'project-shared',
+              'ownerId': 'owner',
+              'role': 'administrator',
+            }),
+          ),
+        );
+    if (mirrorStatusLabels) {
+      for (final label in await (db.select(
+        db.labels,
+      )..where((row) => row.scopeId.isNull())).get()) {
+        await db
+            .into(db.labels)
+            .insert(
+              label.copyWith(
+                id: 'scope:${label.id}',
+                scopeId: const Value('scope'),
+              ),
+            );
+      }
+    }
+    for (final task in const [
+      (
+        id: 'task-personal',
+        content: 'Personal root',
+        projectId: inboxProjectId,
+        statusId: kanbanStatusBacklogId,
+        scopeId: null,
+      ),
+      (
+        id: 'task-shared',
+        content: 'Shared root',
+        projectId: 'project-shared',
+        statusId: 'scope:$kanbanStatusInProgressId',
+        scopeId: 'scope',
+      ),
+    ]) {
+      await db
+          .into(db.tasks)
+          .insert(
+            TasksCompanion.insert(
+              id: task.id,
+              userId: localUserId,
+              content: task.content,
+              projectId: task.projectId,
+              scopeId: Value(task.scopeId),
+              orderKey: task.id,
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+      await db
+          .into(db.taskLabels)
+          .insert(
+            TaskLabelsCompanion.insert(
+              taskId: task.id,
+              labelId: task.statusId,
+              kind: const Value(labelKindKanbanStatus),
+              createdAt: now,
+            ),
+          );
+    }
+    final repository = DriftKanbanRepository(db);
+    await repository
+        .setSelectedProjectIds({
+          if (selectPersonalProject) inboxProjectId,
+          'project-shared',
+        })
+        .then((result) => result.getOrThrow());
+    if (focusStatusLabelId != null) {
+      await repository
+          .setFocusStatus(focusStatusLabelId)
+          .then((result) => result.getOrThrow());
+    }
+    return repository.watchBoard().first;
+  });
+  return board!;
+}
+
+Color _columnBackground(WidgetTester tester, String statusId) {
+  final decoration =
+      tester
+              .widget<DecoratedBox>(find.byKey(Key('kanban-column-$statusId')))
+              .decoration
+          as BoxDecoration;
+  return decoration.color!;
 }
 
 FocusRunItem _activeRun() {
@@ -480,6 +734,7 @@ KanbanBoardSnapshot _snapshot({
       createdAt: now,
       updatedAt: now,
     ),
+    focusedStatusId: kanbanStatusInProgressId,
     availableProjects: projects,
     cardsByStatusId: {
       kanbanStatusBacklogId: const [],
@@ -553,13 +808,13 @@ class _FakeKanbanRepository implements KanbanRepository {
   Stream<KanbanBoardSnapshot> watchBoard() => Stream.value(snapshot);
 
   @override
-  Future<void> moveTask(
+  Future<Result<void>> moveTask(
     String taskId, {
     required String statusId,
     int? targetIndex,
-  }) async {
+  }) => Result.capture<void>(() async {
     moves.add(_Move(taskId, statusId, targetIndex));
-  }
+  });
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -569,15 +824,15 @@ class _ControlledKanbanRepository implements KanbanRepository {
   final completers = <Completer<void>>[];
 
   @override
-  Future<void> moveTask(
+  Future<Result<void>> moveTask(
     String taskId, {
     required String statusId,
     int? targetIndex,
-  }) {
+  }) => Result.capture<void>(() async {
     final completer = Completer<void>();
     completers.add(completer);
     return completer.future;
-  }
+  });
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -587,10 +842,11 @@ class _FakeTaskRepository implements TaskRepository {
   final created = <CreateTaskInput>[];
 
   @override
-  Future<String> createTask(CreateTaskInput input) async {
-    created.add(input);
-    return 'created-${created.length}';
-  }
+  Future<Result<String>> createTask(CreateTaskInput input) =>
+      Result.capture<String>(() async {
+        created.add(input);
+        return 'created-${created.length}';
+      });
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -605,13 +861,13 @@ class _FakeProjectRepository implements ProjectRepository {
   Stream<List<ProjectItem>> watchProjects() => Stream.value(projects);
 
   @override
-  Future<String> createProject(
+  Future<Result<String>> createProject(
     String name, {
     String? color,
     String? parentId,
-  }) async {
+  }) => Result.capture<String>(() async {
     return projects.first.id;
-  }
+  });
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
