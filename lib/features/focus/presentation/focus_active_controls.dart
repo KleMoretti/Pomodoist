@@ -326,7 +326,7 @@ Widget _buildFocusMoreActionsMenu(
                 preset.id,
               ),
               enabled: preset.id != selectedPreset?.id,
-              child: Text(l10n.usePreset(preset.name)),
+              child: Text(l10n.usePreset(focusPresetLabel(l10n, preset))),
             ),
           if (showViewModeMenu && !minimal) const PopupMenuDivider(),
           if (showViewModeMenu)

@@ -17,6 +17,7 @@ import '../../tasks/domain/task_models.dart';
 import '../../tasks/presentation/widgets/project_color_picker.dart';
 import '../domain/focus_models.dart';
 import 'focus_rhythm.dart';
+import 'focus_preset_labels.dart';
 import 'focus_rhythm_rail.dart';
 import 'focus_view_mode.dart';
 
@@ -287,7 +288,9 @@ class _MinimalPresetMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final colors = context.appColors;
-    final title = selectedPreset?.name ?? l10n.noPreset;
+    final title = selectedPreset == null
+        ? l10n.noPreset
+        : focusPresetLabel(l10n, selectedPreset!);
 
     return MenuAnchor(
       style: MenuStyle(
@@ -312,7 +315,7 @@ class _MinimalPresetMenu extends StatelessWidget {
                 onSelected(preset.id);
               }
             },
-            child: Text(preset.name),
+            child: Text(focusPresetLabel(l10n, preset)),
           ),
         if (presets.isNotEmpty) const Divider(height: 1),
         MenuItemButton(

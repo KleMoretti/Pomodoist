@@ -1,13 +1,11 @@
-name: Windows EXE
+name: Chinese Windows preview
 
 on:
   workflow_dispatch:
   push:
     # Register this workflow in a fresh fork; feature builds still require dispatch.
     branches:
-      - 'codex/chinese-default-task-recurrence'
-    tags:
-      - 'v*.*.*'
+      - 'chinese'
 
 concurrency:
   group: desktop-release-${{ github.ref }}
@@ -18,20 +16,16 @@ permissions:
 
 jobs:
   validate-ref:
-    if: github.event_name == 'workflow_dispatch' || github.ref_type == 'tag'
-    name: Require main, release tag, or the manual feature preview
+    if: github.event_name == 'workflow_dispatch'
+    name: Require the Chinese development branch
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - name: Reject unsupported ref
         run: |
-          number='(0|[1-9][0-9]*)'
-          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch && "$GITHUB_REF" == refs/heads/codex/chinese-default-task-recurrence ]]; then
-            exit 0
-          fi
-          if [[ "$GITHUB_REF" != refs/heads/main && ! "$GITHUB_REF" =~ ^refs/tags/v$number\.$number\.$number(-rc\.$number)?$ ]]; then
-            echo 'Windows builds require main, vX.Y.Z, or vX.Y.Z-rc.N.' >&2
+          if [[ "$GITHUB_EVENT_NAME" != workflow_dispatch || "$GITHUB_REF" != refs/heads/chinese ]]; then
+            echo 'Fork releases must be dispatched from chinese. main is reserved for upstream synchronization.' >&2
             exit 64
           fi
 
@@ -39,7 +33,7 @@ jobs:
     name: Build and verify unsigned EXE
     needs: validate-ref
     runs-on: windows-2022
-    environment: ${{ github.ref == 'refs/heads/codex/chinese-default-task-recurrence' && 'windows-preview' || 'windows-production' }}
+    environment: windows-preview
     permissions:
       contents: read
     outputs:
@@ -60,37 +54,22 @@ jobs:
           fi
           build_number="${BASH_REMATCH[1]}"
           release_version="${pubspec_version%+*}"
-          if [[ "$GITHUB_REF_TYPE" == tag ]]; then
-            number='(0|[1-9][0-9]*)'
-            if [[ ! "$GITHUB_REF_NAME" =~ ^v$number\.$number\.$number(-rc\.$number)?$ ]]; then
-              echo 'Release tags must use vX.Y.Z or vX.Y.Z-rc.N.' >&2
-              exit 64
-            fi
-            release_version="${GITHUB_REF_NAME#v}"
-            awk -v version="$release_version+$build_number" '
-              /^version:/ {$0 = "version: " version}
-              {sub(/\r$/, ""); print}
-            ' pubspec.yaml > pubspec.yaml.tmp
-            mv pubspec.yaml.tmp pubspec.yaml
-          fi
           echo "POMODOIST_VERSION=$release_version" >> "$GITHUB_ENV"
           echo "version=$release_version" >> "$GITHUB_OUTPUT"
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version-file: .fvmrc
       - run: flutter pub get
-      - name: Generate translations and format feature changes
-        if: github.ref == 'refs/heads/codex/chinese-default-task-recurrence'
+      - name: Generate translations and format changed sources
         run: |
           flutter gen-l10n
           if ($LASTEXITCODE -ne 0) { throw 'Localization generation failed.' }
-          dart format lib/app/app_language.dart lib/app/app_l10n.dart lib/features/tasks/domain/task_models.dart lib/features/tasks/data/task_repository_impl.dart lib/features/tasks/presentation/task_detail_screen.dart lib/features/tasks/presentation/task_recurrence_button.dart test/chinese_recurrence_test.dart test/core_features_test.dart
+          dart format lib/app/app_language.dart lib/app/app_l10n.dart lib/features/tasks/domain/task_models.dart lib/features/tasks/data/task_repository_impl.dart lib/features/tasks/presentation/task_detail_screen.dart lib/features/tasks/presentation/task_recurrence_button.dart test/chinese_recurrence_test.dart test/core_features_test.dart lib/features/focus/presentation/focus_preset_labels.dart lib/features/focus/presentation/focus_stage.dart lib/features/focus/presentation/focus_active_controls.dart lib/features/focus/presentation/focus_screen.dart
           if ($LASTEXITCODE -ne 0) { throw 'Formatting failed.' }
       - name: Save generated sources for SDK-free development
-        if: github.ref == 'refs/heads/codex/chinese-default-task-recurrence'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: feature-generated-sources
+          name: chinese-generated-sources
           path: |
             lib/l10n/app_localizations*.dart
             lib/app/app_language.dart
@@ -99,10 +78,13 @@ jobs:
             lib/features/tasks/data/task_repository_impl.dart
             lib/features/tasks/presentation/task_detail_screen.dart
             lib/features/tasks/presentation/task_recurrence_button.dart
+            lib/features/focus/presentation/focus_preset_labels.dart
+            lib/features/focus/presentation/focus_stage.dart
+            lib/features/focus/presentation/focus_active_controls.dart
+            lib/features/focus/presentation/focus_screen.dart
             test/chinese_recurrence_test.dart
             test/core_features_test.dart
       - name: Analyze and run minimal feature tests
-        if: github.ref == 'refs/heads/codex/chinese-default-task-recurrence'
         run: |
           flutter analyze --no-pub
           if ($LASTEXITCODE -ne 0) { throw 'Static analysis failed.' }
@@ -129,55 +111,12 @@ jobs:
           if ($actualCompilerHash -cne $expectedCompilerHash) {
             throw "Inno Setup compiler hash mismatch: $actualCompilerHash"
           }
-      - name: Validate and write production configuration
-        if: github.ref != 'refs/heads/codex/chinese-default-task-recurrence'
-        env:
-          WEB_APP_URL: ${{ vars.WEB_APP_URL }}
-          TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
-          SENTRY_DSN: ${{ vars.SENTRY_DSN }}
-          GOOGLE_DESKTOP_CLIENT_ID: ${{ vars.GOOGLE_DESKTOP_CLIENT_ID }}
-          GOOGLE_DESKTOP_CLIENT_SECRET: ${{ secrets.GOOGLE_DESKTOP_CLIENT_SECRET }}
-        run: |
-          $required = @('WEB_APP_URL', 'TURNSTILE_SITE_KEY', 'GOOGLE_DESKTOP_CLIENT_ID')
-          foreach ($name in $required) {
-            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
-              throw "$name is required in the windows-production environment."
-            }
-          }
-          $config = [ordered]@{
-            POMODOIST_ENVIRONMENT = 'production'
-            WEB_APP_URL = $env:WEB_APP_URL
-            POMODOIST_REGISTRATION_URL = 'https://app.pomodoist.com/auth/challenge'
-            TURNSTILE_SITE_KEY = $env:TURNSTILE_SITE_KEY
-            SENTRY_DSN = $env:SENTRY_DSN
-            GOOGLE_DESKTOP_CLIENT_ID = $env:GOOGLE_DESKTOP_CLIENT_ID
-            GOOGLE_DESKTOP_CLIENT_SECRET = $env:GOOGLE_DESKTOP_CLIENT_SECRET
-          }
-          $config | ConvertTo-Json | Set-Content `
-            -LiteralPath "$env:RUNNER_TEMP\windows-production.json" `
-            -Encoding utf8
-      - name: Build Flutter release
-        if: github.ref != 'refs/heads/codex/chinese-default-task-recurrence'
-        run: >-
-          powershell.exe -NoProfile -ExecutionPolicy Bypass
-          -File .\tool\windows\build.ps1
-          -Configuration Release
-          -ConfigFile "$env:RUNNER_TEMP\windows-production.json"
-          -ReleaseSha $env:GITHUB_SHA
       - name: Build local-mode feature preview
-        if: github.ref == 'refs/heads/codex/chinese-default-task-recurrence'
         run: >-
           flutter build windows --release
           --dart-define=POMODOIST_ENVIRONMENT=local
           --dart-define=POMODOIST_BILLING_CHANNEL=stripe
           --dart-define=POMODOIST_RELEASE=${{ github.sha }}
-      - name: Remove production configuration
-        if: always()
-        run: >-
-          Remove-Item
-          -LiteralPath "$env:RUNNER_TEMP\windows-production.json"
-          -Force
-          -ErrorAction SilentlyContinue
       - name: Compile installer and checksum with pinned compiler
         run: |
           $compiler = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
@@ -220,7 +159,7 @@ jobs:
 
   publish:
     name: Publish Windows EXE
-    environment: ${{ github.ref == 'refs/heads/codex/chinese-default-task-recurrence' && 'windows-preview' || 'windows-production' }}
+    environment: windows-preview
     needs: build-test
     runs-on: ubuntu-latest
     permissions:
@@ -228,76 +167,17 @@ jobs:
     env:
       GH_REPO: ${{ github.repository }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: github.ref_type == 'tag'
-        with:
-          fetch-depth: 0
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: pomodoist-windows-exe
           path: release
-      - name: Upload EXE and publish complete desktop release
-        if: github.ref_type == 'tag'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_NOTES_API_KEY: ${{ secrets.RELEASE_NOTES_API_KEY }}
-        run: |
-          release_notes='Official Pomodoist desktop release. Linux is distributed as a portable x86_64 AppImage. The Windows installer is unsigned, so Microsoft Defender SmartScreen may warn about an unknown publisher.'
-          prerelease=false
-          latest=true
-          if [[ "$GITHUB_REF_NAME" == *-rc.* ]]; then
-            prerelease=true
-            latest=false
-          fi
-          if ! gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
-            if generated_notes=$(python3 tool/release_notes.py); then
-              release_notes="$generated_notes"
-            fi
-            gh release create "$GITHUB_REF_NAME" \
-              --draft \
-              --prerelease="$prerelease" \
-              --target "$GITHUB_SHA" \
-              --title "Pomodoist $GITHUB_REF_NAME" \
-              --notes "$release_notes" || \
-              gh release view "$GITHUB_REF_NAME" > /dev/null
-          fi
-          gh release upload "$GITHUB_REF_NAME" \
-            release/Pomodoist-Setup.exe \
-            release/Pomodoist-Setup.exe.sha256 \
-            --clobber
-          release_id=$(gh api --paginate \
-            "repos/$GITHUB_REPOSITORY/releases" \
-            --jq ".[] | select(.tag_name == \"$GITHUB_REF_NAME\") | .id")
-          required_assets=(
-            Pomodoist-x86_64.AppImage
-            Pomodoist-x86_64.AppImage.sha256
-            Pomodoist-Setup.exe
-            Pomodoist-Setup.exe.sha256
-          )
-          asset_names=$(gh api \
-            "repos/$GITHUB_REPOSITORY/releases/$release_id/assets" \
-            --jq '.[].name')
-          for required_asset in "${required_assets[@]}"; do
-            if ! grep -Fqx -- "$required_asset" <<< "$asset_names"; then
-              echo 'Release remains draft until all desktop assets are present.'
-              exit 0
-            fi
-          done
-          gh api --method PATCH \
-            "repos/$GITHUB_REPOSITORY/releases/$release_id" \
-            --raw-field tag_name="$GITHUB_REF_NAME" \
-            --field draft=false \
-            --field prerelease="$prerelease" \
-            --raw-field make_latest="$latest" \
-            --silent
       - name: Publish manual GitHub pre-release
-        if: github.ref_type != 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.build-test.outputs.version }}
           SOURCE_BRANCH: ${{ github.ref_name }}
         run: |
-          tag="windows-preview-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
+          tag="chinese-preview-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
           notes=$(cat <<EOF
           Unsigned Windows preview. Microsoft Defender SmartScreen may warn about an unknown publisher.
 
@@ -307,15 +187,15 @@ jobs:
           Source branch: ${SOURCE_BRANCH}
           EOF
           )
-          if [[ "$SOURCE_BRANCH" == codex/chinese-default-task-recurrence ]]; then
-            notes+=$'\n\nLocal-mode feature preview: Chinese by default and repeat date ranges. Cloud sign-in and sync are not configured in this package.\n\nManual checks: confirm Chinese after upgrading; change the language and restart; save and reopen a daily/weekly/monthly repeat with an end date; stop repeating and verify existing tasks remain.'
+          if [[ "$SOURCE_BRANCH" == chinese ]]; then
+            notes+=$'\n\nLocal-mode feature preview: Revised Chinese interface wording, Chinese focus plan names, and repeat date ranges. Development and releases now use the chinese branch; main remains reserved for upstream synchronization. Cloud sign-in and sync are not configured in this package.\n\nManual checks: confirm Chinese after upgrading; change the language and restart; save and reopen a daily/weekly/monthly repeat with an end date; stop repeating and verify existing tasks remain.'
           fi
           printf '%s\n' "$notes" > "$RUNNER_TEMP/preview-notes.md"
           gh release create "$tag" \
             --target "$GITHUB_SHA" \
             --prerelease \
             --latest=false \
-            --title "Pomodoist $VERSION Windows preview" \
+            --title "Pomodoist $VERSION Chinese preview" \
             --notes-file "$RUNNER_TEMP/preview-notes.md" \
             release/Pomodoist-Setup.exe \
             release/Pomodoist-Setup.exe.sha256

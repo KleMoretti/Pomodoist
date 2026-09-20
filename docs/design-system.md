@@ -18,6 +18,17 @@ consistent details, rather than larger elements or more effects.
 - Expressive recognition of an achievement is welcome: Focus completion should
   feel rewarding while retaining the app's palette and character.
 
+## Chinese interface wording
+
+Use concise, natural Simplified Chinese. A completed work interval is a focus
+round (`轮`); an individual work or break interval is a stage (`阶段`). Label
+presets as focus plans (`专注方案`), descriptions as notes (`备注`), and use
+consistent names for Inbox, Overview, Timeline, and upcoming plans. Avoid literal
+translations such as "active session" or "focus load" in user-facing copy.
+Preserve placeholders and the meaning of destructive actions. Localize untouched
+built-in preset names only at display time; never translate user-created names or
+rewrite stored names just because the interface language changed.
+
 ## Sources in code
 
 | Purpose | Source |

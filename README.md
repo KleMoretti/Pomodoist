@@ -1,3 +1,17 @@
+## Chinese personal fork
+
+This fork is based on [Kabanya/Pomodoist](https://github.com/Kabanya/Pomodoist).
+`chinese` is the development and release branch; `main` is reserved for upstream
+synchronization and must not receive fork-specific changes. Create feature branches
+from `chinese` and merge them back into `chinese`.
+
+Download this fork's Windows installers from
+[KleMoretti/Pomodoist Releases](https://github.com/KleMoretti/Pomodoist/releases).
+To publish, run **Chinese Windows preview** on `chinese`. These unsigned preview
+builds currently use local mode; cloud sign-in and sync are not configured.
+Review the Chinese UI manually after installation. Original project information
+and attribution follow below.
+
 <p align="center">
   <img src=".github/assets/github-banner.webp" alt="Pomodoist task manager, focus timer, and productivity reports" width="100%">
 </p>

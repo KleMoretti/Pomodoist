@@ -13,6 +13,7 @@ import '../../../app/widgets/action_feedback.dart';
 import '../../../app/widgets/resizable_dialog.dart';
 import '../domain/focus_models.dart';
 import 'focus_stage.dart';
+import 'focus_preset_labels.dart';
 import 'focus_view_mode.dart';
 
 class FocusScreen extends ConsumerStatefulWidget {
@@ -433,6 +434,18 @@ class _PresetFormDialogState extends State<_PresetFormDialog> {
   late bool _autoStartWork;
   late bool _allowPause;
   late bool _strictMode;
+  String? _initialDisplayName;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialDisplayName != null) return;
+    final preset = widget.preset;
+    _initialDisplayName = preset == null
+        ? ''
+        : focusPresetLabel(context.l10n, preset);
+    _nameController.text = _initialDisplayName!;
+  }
 
   @override
   void initState() {
@@ -534,7 +547,7 @@ class _PresetFormDialogState extends State<_PresetFormDialog> {
                         style: AppTheme.monoTextStyle,
                         decoration: InputDecoration(
                           labelText: l10n.every,
-                          suffixText: l10n.work,
+                          suffixText: l10n.focusRoundsUnit,
                         ),
                         keyboardType: TextInputType.number,
                         inputFormatters: [
@@ -610,7 +623,10 @@ class _PresetFormDialogState extends State<_PresetFormDialog> {
     Navigator.of(context).pop(
       _PresetDialogResult.save(
         _PresetFormData(
-          name: _nameController.text.trim(),
+          name: widget.preset != null &&
+                  _nameController.text.trim() == _initialDisplayName
+              ? widget.preset!.name
+              : _nameController.text.trim(),
           workSeconds: _parseMinutes(_workController) * 60,
           shortBreakSeconds: _parseMinutes(_shortBreakController) * 60,
           longBreakSeconds: _parseMinutes(_longBreakController) * 60,
@@ -632,7 +648,9 @@ class _PresetFormDialogState extends State<_PresetFormDialog> {
     final duplicate = widget.presets.any(
       (preset) =>
           preset.id != widget.preset?.id &&
-          preset.name.trim().toLowerCase() == trimmed.toLowerCase(),
+          (preset.name.trim().toLowerCase() == trimmed.toLowerCase() ||
+              focusPresetLabel(context.l10n, preset).toLowerCase() ==
+                  trimmed.toLowerCase()),
     );
     if (duplicate) {
       return context.l10n.nameMustBeUnique;
