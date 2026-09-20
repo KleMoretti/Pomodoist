@@ -59,7 +59,10 @@ class AppLanguageController extends Notifier<AppLanguage> {
   Future<void> _persist(AppLanguage language) {
     return _writes = _writes.catchError((Object _) {}).then((_) async {
       final prefs = await SharedPreferences.getInstance();
-      if (!await prefs.setString(appLanguagePreferenceKey, language.storageValue)) {
+      if (!await prefs.setString(
+        appLanguagePreferenceKey,
+        language.storageValue,
+      )) {
         throw StateError('Could not save language');
       }
       if (!await prefs.setBool(appLanguageChineseMigrationKey, true)) {
@@ -74,7 +77,9 @@ class AppLanguageController extends Notifier<AppLanguage> {
       if (!ref.mounted || _hasLocalSelection) return;
       final migrated = prefs.getBool(appLanguageChineseMigrationKey) ?? false;
       final stored = migrated
-          ? AppLanguage.fromStorageValue(prefs.getString(appLanguagePreferenceKey))
+          ? AppLanguage.fromStorageValue(
+              prefs.getString(appLanguagePreferenceKey),
+            )
           : AppLanguage.zh;
       if (!migrated) await _persist(stored);
       if (ref.mounted && !_hasLocalSelection) state = stored;

@@ -3150,6 +3150,48 @@ abstract class AppLocalizations {
   /// **'Timed block'**
   String get timedBlock;
 
+  /// No description provided for @recurrenceStartDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Start date'**
+  String get recurrenceStartDate;
+
+  /// No description provided for @recurrenceEndDate.
+  ///
+  /// In en, this message translates to:
+  /// **'End date (inclusive)'**
+  String get recurrenceEndDate;
+
+  /// No description provided for @recurrenceNoEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'No end date'**
+  String get recurrenceNoEnd;
+
+  /// No description provided for @recurrenceStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop repeating'**
+  String get recurrenceStop;
+
+  /// No description provided for @recurrenceInvalidDateRange.
+  ///
+  /// In en, this message translates to:
+  /// **'The end date must not be before the start date.'**
+  String get recurrenceInvalidDateRange;
+
+  /// No description provided for @recurrenceSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save repeat settings. Please try again.'**
+  String get recurrenceSaveFailed;
+
+  /// No description provided for @recurrenceDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat within these dates. Missed occurrences while the app is closed are skipped. Stopping keeps tasks already created.'**
+  String get recurrenceDescription;
+
   /// No description provided for @recurrenceTitle.
   ///
   /// In en, this message translates to:

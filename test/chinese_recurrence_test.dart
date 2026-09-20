@@ -11,20 +11,25 @@ import 'package:pomodoist/features/tasks/domain/task_models.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('Chinese migration runs once and preserves subsequent selections', () async {
-    SharedPreferences.setMockInitialValues({appLanguagePreferenceKey: 'en'});
-    final first = ProviderContainer();
-    expect(first.read(appLanguageProvider), AppLanguage.zh);
-    await first.read(appLanguageProvider.notifier).ready;
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getString(appLanguagePreferenceKey), 'zh');
-    await first.read(appLanguageProvider.notifier).setLanguage(AppLanguage.en);
-    first.dispose();
-    final restarted = ProviderContainer();
-    addTearDown(restarted.dispose);
-    await restarted.read(appLanguageProvider.notifier).ready;
-    expect(restarted.read(appLanguageProvider), AppLanguage.en);
-  });
+  test(
+    'Chinese migration runs once and preserves subsequent selections',
+    () async {
+      SharedPreferences.setMockInitialValues({appLanguagePreferenceKey: 'en'});
+      final first = ProviderContainer();
+      expect(first.read(appLanguageProvider), AppLanguage.zh);
+      await first.read(appLanguageProvider.notifier).ready;
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString(appLanguagePreferenceKey), 'zh');
+      await first
+          .read(appLanguageProvider.notifier)
+          .setLanguage(AppLanguage.en);
+      first.dispose();
+      final restarted = ProviderContainer();
+      addTearDown(restarted.dispose);
+      await restarted.read(appLanguageProvider.notifier).ready;
+      expect(restarted.read(appLanguageProvider), AppLanguage.en);
+    },
+  );
 
   test('a choice made during loading wins over migration', () async {
     SharedPreferences.setMockInitialValues({});
@@ -39,34 +44,65 @@ void main() {
     expect(prefs.getBool(appLanguageChineseMigrationKey), isTrue);
   });
 
-  test('recurrence range round-trips, includes end day and reads old rules', () {
-    final rule = TaskRecurrence(interval: 1, unit: TaskRecurrenceUnit.day,
-      seriesId: 'range', startDate: DateTime(2026, 9, 20), endDate: DateTime(2026, 9, 21));
-    final schedule = TaskSchedule.timed(start: DateTime(2026, 9, 20, 9),
-      end: DateTime(2026, 9, 20, 10), recurrence: rule);
-    final parsed = TaskSchedule.fromJsonString(schedule.toJsonString())!;
-    expect(parsed.recurrence, rule);
-    final next = parsed.nextOccurrenceAfter(DateTime(2026, 9, 20, 12))!;
-    expect(next.start!.toLocal(), DateTime(2026, 9, 21, 9));
-    expect(next.duration, const Duration(hours: 1));
-    expect(next.nextOccurrence(), isNull);
-    expect(parsed.nextOccurrenceAfter(DateTime(2026, 10, 1)), isNull);
-    final legacy = TaskRecurrence.fromJson({'interval': 1, 'unit': 'week', 'seriesId': 'old'})!;
-    expect(legacy.startDate, isNull);
-    expect(legacy.endDate, isNull);
-    expect(TaskSchedule.allDay(DateTime(2026, 9, 20), recurrence: legacy)
-      .nextOccurrence()!.date, DateTime(2026, 9, 27));
-  });
+  test(
+    'recurrence range round-trips, includes end day and reads old rules',
+    () {
+      final rule = TaskRecurrence(
+        interval: 1,
+        unit: TaskRecurrenceUnit.day,
+        seriesId: 'range',
+        startDate: DateTime(2026, 9, 20),
+        endDate: DateTime(2026, 9, 21),
+      );
+      final schedule = TaskSchedule.timed(
+        start: DateTime(2026, 9, 20, 9),
+        end: DateTime(2026, 9, 20, 10),
+        recurrence: rule,
+      );
+      final parsed = TaskSchedule.fromJsonString(schedule.toJsonString())!;
+      expect(parsed.recurrence, rule);
+      final next = parsed.nextOccurrenceAfter(DateTime(2026, 9, 20, 12))!;
+      expect(next.start!.toLocal(), DateTime(2026, 9, 21, 9));
+      expect(next.duration, const Duration(hours: 1));
+      expect(next.nextOccurrence(), isNull);
+      expect(parsed.nextOccurrenceAfter(DateTime(2026, 10, 1)), isNull);
+      final legacy = TaskRecurrence.fromJson({
+        'interval': 1,
+        'unit': 'week',
+        'seriesId': 'old',
+      })!;
+      expect(legacy.startDate, isNull);
+      expect(legacy.endDate, isNull);
+      expect(
+        TaskSchedule.allDay(
+          DateTime(2026, 9, 20),
+          recurrence: legacy,
+        ).nextOccurrence()!.date,
+        DateTime(2026, 9, 27),
+      );
+    },
+  );
 
   test('materialization stops at the end date without duplicates', () async {
     final db = AppDatabase(NativeDatabase.memory());
     addTearDown(db.close);
     await db.ensureSeedData();
     final repo = DriftTaskRepository(db, DriftSyncQueueRepository(db));
-    final id = await repo.createTask(CreateTaskInput(content: 'Daily',
-      schedule: TaskSchedule.allDay(DateTime(2026, 9, 20), recurrence: TaskRecurrence(
-        interval: 1, unit: TaskRecurrenceUnit.day, seriesId: 'bounded',
-        startDate: DateTime(2026, 9, 20), endDate: DateTime(2026, 9, 21)))));
+    final id = await repo.createTask(
+      CreateTaskInput(
+        content: 'Daily',
+        schedule: TaskSchedule.allDay(
+          DateTime(2026, 9, 20),
+          recurrence: TaskRecurrence(
+            interval: 1,
+            unit: TaskRecurrenceUnit.day,
+            seriesId: 'bounded',
+            startDate: DateTime(2026, 9, 20),
+            endDate: DateTime(2026, 9, 21),
+          ),
+        ),
+      ),
+    );
     await repo.materializeDueRecurringTasks(now: DateTime(2026, 9, 20, 12));
     await repo.materializeDueRecurringTasks(now: DateTime(2026, 9, 20, 12));
     expect((await repo.watchTasks(const TaskQuery.all()).first), hasLength(2));
@@ -83,9 +119,19 @@ void main() {
     addTearDown(db.close);
     await db.ensureSeedData();
     final repo = DriftTaskRepository(db, DriftSyncQueueRepository(db));
-    final id = await repo.createTask(CreateTaskInput(content: 'Daily',
-      schedule: TaskSchedule.allDay(DateTime(2026, 9, 20), recurrence: const TaskRecurrence(
-        interval: 1, unit: TaskRecurrenceUnit.day, seriesId: 'stoppable'))));
+    final id = await repo.createTask(
+      CreateTaskInput(
+        content: 'Daily',
+        schedule: TaskSchedule.allDay(
+          DateTime(2026, 9, 20),
+          recurrence: const TaskRecurrence(
+            interval: 1,
+            unit: TaskRecurrenceUnit.day,
+            seriesId: 'stoppable',
+          ),
+        ),
+      ),
+    );
     await repo.materializeDueRecurringTasks(now: DateTime(2026, 9, 20, 12));
     await repo.updateTaskRecurrence(id, recurrence: null);
     await repo.materializeDueRecurringTasks(now: DateTime(2026, 9, 23));

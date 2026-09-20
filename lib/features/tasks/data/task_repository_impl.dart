@@ -66,22 +66,25 @@ class DriftTaskRepository implements TaskRepository {
   TaskRow? _recurrenceTask(List<TaskRow> rows, String id) {
     final selected = rows.firstWhereOrNull((row) => row.id == id);
     if (selected == null) return null;
-    final series = TaskSchedule.fromJsonString(selected.dueJson)?.recurrenceSeriesKey;
+    final series = TaskSchedule.fromJsonString(
+      selected.dueJson,
+    )?.recurrenceSeriesKey;
     if (series == null) return selected;
     return rows.firstWhereOrNull((row) {
-      final schedule = TaskSchedule.fromJsonString(row.dueJson);
-      return schedule?.recurrence?.seriesId == series;
-    }) ?? selected;
+          final schedule = TaskSchedule.fromJsonString(row.dueJson);
+          return schedule?.recurrence?.seriesId == series;
+        }) ??
+        selected;
   }
 
   @override
   Stream<TaskItem?> watchRecurrenceTask(String id) {
-    return (_db.select(_db.tasks)..where((row) => row.isDeleted.equals(false)))
-        .watch()
-        .map((rows) {
-          final row = _recurrenceTask(rows, id);
-          return row == null ? null : _mapTask(row);
-        });
+    return (_db.select(
+      _db.tasks,
+    )..where((row) => row.isDeleted.equals(false))).watch().map((rows) {
+      final row = _recurrenceTask(rows, id);
+      return row == null ? null : _mapTask(row);
+    });
   }
 
   @override
@@ -91,14 +94,17 @@ class DriftTaskRepository implements TaskRepository {
     DateTime? startDate,
   }) async {
     if (recurrence != null &&
-        (recurrence.interval < 1 || recurrence.interval > 999 ||
-         recurrence.startDate != null && recurrence.endDate != null &&
-         recurrence.endDate!.isBefore(recurrence.startDate!))) {
+        (recurrence.interval < 1 ||
+            recurrence.interval > 999 ||
+            recurrence.startDate != null &&
+                recurrence.endDate != null &&
+                recurrence.endDate!.isBefore(recurrence.startDate!))) {
       throw ArgumentError('Invalid recurrence');
     }
     await _db.transaction(() async {
-      final rows = await (_db.select(_db.tasks)
-        ..where((row) => row.isDeleted.equals(false))).get();
+      final rows = await (_db.select(
+        _db.tasks,
+      )..where((row) => row.isDeleted.equals(false))).get();
       // The active rule moves to the next copy during materialization. Resolve
       // it again inside the transaction so editing an earlier copy is safe.
       final target = _recurrenceTask(rows, id);
@@ -106,17 +112,22 @@ class DriftTaskRepository implements TaskRepository {
       final existing = TaskSchedule.fromJsonString(target.dueJson);
       if (recurrence == null) {
         if (existing?.recurrence != null) {
-          await updateTask(target.id, UpdateTaskPatch(
-            schedule: existing!.withoutRecurrence(keepSeriesId: true),
-          ));
+          await updateTask(
+            target.id,
+            UpdateTaskPatch(
+              schedule: existing!.withoutRecurrence(keepSeriesId: true),
+            ),
+          );
         }
         return;
       }
-      var schedule = existing ?? TaskSchedule.allDay(startDate ?? DateTime.now());
+      var schedule =
+          existing ?? TaskSchedule.allDay(startDate ?? DateTime.now());
       if (startDate != null) schedule = schedule.moveToDate(startDate);
-      await updateTask(target.id, UpdateTaskPatch(
-        schedule: schedule.withRecurrence(recurrence),
-      ));
+      await updateTask(
+        target.id,
+        UpdateTaskPatch(schedule: schedule.withRecurrence(recurrence)),
+      );
     });
   }
 

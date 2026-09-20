@@ -1675,33 +1675,55 @@ class AppLocalizationsZh extends AppLocalizations {
   String get timedBlock => '时间块';
 
   @override
-  String get recurrenceTitle => 'Repeat';
+  String get recurrenceStartDate => '开始日期';
 
   @override
-  String get recurrenceNeedsSchedule => 'Add a date or time before repeating.';
+  String get recurrenceEndDate => '结束日期（含当天）';
 
   @override
-  String get recurrenceIntervalLabel => 'Interval';
+  String get recurrenceNoEnd => '不结束';
 
   @override
-  String get recurrenceUnitDay => 'Days';
+  String get recurrenceStop => '停止重复';
 
   @override
-  String get recurrenceUnitWeek => 'Weeks';
+  String get recurrenceInvalidDateRange => '结束日期不能早于开始日期。';
 
   @override
-  String get recurrenceUnitMonth => 'Months';
+  String get recurrenceSaveFailed => '保存重复设置失败，请重试。';
 
   @override
-  String get recurrenceInvalidInterval => 'Enter 1 to 999.';
+  String get recurrenceDescription =>
+      '在指定日期范围内重复。未打开应用期间错过的次数不会补齐。停止重复会保留已生成的任务。';
+
+  @override
+  String get recurrenceTitle => '重复';
+
+  @override
+  String get recurrenceNeedsSchedule => '请先添加日期或时间，再设置重复。';
+
+  @override
+  String get recurrenceIntervalLabel => '每隔';
+
+  @override
+  String get recurrenceUnitDay => '天';
+
+  @override
+  String get recurrenceUnitWeek => '周';
+
+  @override
+  String get recurrenceUnitMonth => '月';
+
+  @override
+  String get recurrenceInvalidInterval => '请输入 1 到 999 之间的整数。';
 
   @override
   String recurrenceEveryDays(int interval) {
     String _temp0 = intl.Intl.pluralLogic(
       interval,
       locale: localeName,
-      other: 'every $interval days',
-      one: 'every day',
+      other: '每 $interval 天',
+      one: '每天',
     );
     return '$_temp0';
   }
@@ -1711,8 +1733,8 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       interval,
       locale: localeName,
-      other: 'every $interval weeks',
-      one: 'every week',
+      other: '每 $interval 周',
+      one: '每周',
     );
     return '$_temp0';
   }
@@ -1722,8 +1744,8 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       interval,
       locale: localeName,
-      other: 'every $interval months',
-      one: 'every month',
+      other: '每 $interval 月',
+      one: '每月',
     );
     return '$_temp0';
   }
@@ -1758,17 +1780,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get taskDeleted => '任务已删除';
 
   @override
-  String get recurringDeleteTitle => 'Delete recurring task?';
+  String get recurringDeleteTitle => '删除重复任务？';
 
   @override
-  String get recurringDeleteMessage =>
-      'This task belongs to a recurring series.';
+  String get recurringDeleteMessage => '此任务属于一个重复系列。';
 
   @override
-  String get recurringDeleteThis => 'Delete this task';
+  String get recurringDeleteThis => '仅删除本次任务';
 
   @override
-  String get recurringDeleteThisAndFollowing => 'Delete this and following';
+  String get recurringDeleteThisAndFollowing => '删除本次及后续任务';
 
   @override
   String get markOpen => '标记为未完成';
@@ -2437,7 +2458,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get themeGraphite => '石墨';
 
   @override
-  String get themeCustom => 'Custom';
+  String get themeCustom => '自定义';
 
   @override
   String get themeResetToClassic => '重置为经典';

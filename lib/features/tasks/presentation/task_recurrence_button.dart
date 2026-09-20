@@ -9,9 +9,10 @@ import '../../../app/theme/app_theme.dart';
 import '../../../app/widgets/app_date_time_picker.dart';
 import '../domain/task_models.dart';
 
-final _recurrenceTaskProvider = StreamProvider.autoDispose.family<TaskItem?, String>(
-  (ref, id) => ref.watch(taskRepositoryProvider).watchRecurrenceTask(id),
-);
+final _recurrenceTaskProvider = StreamProvider.autoDispose
+    .family<TaskItem?, String>(
+      (ref, id) => ref.watch(taskRepositoryProvider).watchRecurrenceTask(id),
+    );
 
 class TaskRecurrenceButton extends ConsumerWidget {
   const TaskRecurrenceButton({required this.task, super.key});
@@ -23,11 +24,19 @@ class TaskRecurrenceButton extends ConsumerWidget {
     final source = ref.watch(_recurrenceTaskProvider(task.id));
     final recurrence = (source.value ?? task).schedule?.recurrence;
     final l10n = context.l10n;
-    final label = recurrence == null ? l10n.recurrenceTitle : switch (recurrence.unit) {
-      TaskRecurrenceUnit.day => l10n.recurrenceEveryDays(recurrence.interval),
-      TaskRecurrenceUnit.week => l10n.recurrenceEveryWeeks(recurrence.interval),
-      TaskRecurrenceUnit.month => l10n.recurrenceEveryMonths(recurrence.interval),
-    };
+    final label = recurrence == null
+        ? l10n.recurrenceTitle
+        : switch (recurrence.unit) {
+            TaskRecurrenceUnit.day => l10n.recurrenceEveryDays(
+              recurrence.interval,
+            ),
+            TaskRecurrenceUnit.week => l10n.recurrenceEveryWeeks(
+              recurrence.interval,
+            ),
+            TaskRecurrenceUnit.month => l10n.recurrenceEveryMonths(
+              recurrence.interval,
+            ),
+          };
     return ShadButton.outline(
       key: const Key('task-detail-recurrence-button'),
       leading: const Icon(LucideIcons.repeat, size: 16),
@@ -65,7 +74,9 @@ class _RecurrenceDialogState extends ConsumerState<_RecurrenceDialog> {
     final rule = widget.task.schedule?.recurrence;
     _interval = TextEditingController(text: '${rule?.interval ?? 1}');
     _unit = rule?.unit ?? TaskRecurrenceUnit.day;
-    _start = rule?.startDate ?? widget.task.schedule?.displayDate ??
+    _start =
+        rule?.startDate ??
+        widget.task.schedule?.displayDate ??
         DateUtils.dateOnly(ref.read(clockProvider).now().toLocal());
     _initialStart = _start;
     _end = rule?.endDate;
@@ -100,7 +111,9 @@ class _RecurrenceDialogState extends ConsumerState<_RecurrenceDialog> {
         child: SizedBox(
           width: 400,
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.6),
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * 0.6,
+            ),
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,12 +136,21 @@ class _RecurrenceDialogState extends ConsumerState<_RecurrenceDialog> {
                     value: _unit,
                     onChanged: (unit) => setState(() => _unit = unit),
                     tabs: [
-                      ShadTab(value: TaskRecurrenceUnit.day, enabled: !_saving,
-                        child: Text(l10n.recurrenceUnitDay)),
-                      ShadTab(value: TaskRecurrenceUnit.week, enabled: !_saving,
-                        child: Text(l10n.recurrenceUnitWeek)),
-                      ShadTab(value: TaskRecurrenceUnit.month, enabled: !_saving,
-                        child: Text(l10n.recurrenceUnitMonth)),
+                      ShadTab(
+                        value: TaskRecurrenceUnit.day,
+                        enabled: !_saving,
+                        child: Text(l10n.recurrenceUnitDay),
+                      ),
+                      ShadTab(
+                        value: TaskRecurrenceUnit.week,
+                        enabled: !_saving,
+                        child: Text(l10n.recurrenceUnitWeek),
+                      ),
+                      ShadTab(
+                        value: TaskRecurrenceUnit.month,
+                        enabled: !_saving,
+                        child: Text(l10n.recurrenceUnitMonth),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -138,7 +160,8 @@ class _RecurrenceDialogState extends ConsumerState<_RecurrenceDialog> {
                     value: _end == null,
                     enabled: !_saving,
                     label: Text(l10n.recurrenceNoEnd),
-                    onChanged: (noEnd) => setState(() => _end = noEnd ? null : _start),
+                    onChanged: (noEnd) =>
+                        setState(() => _end = noEnd ? null : _start),
                   ),
                   if (_end != null) ...[
                     const SizedBox(height: 12),
@@ -155,8 +178,13 @@ class _RecurrenceDialogState extends ConsumerState<_RecurrenceDialog> {
                   ],
                   if (_error != null) ...[
                     const SizedBox(height: 12),
-                    Semantics(liveRegion: true, child: Text(_error!,
-                      style: TextStyle(color: context.appColors.error))),
+                    Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        _error!,
+                        style: TextStyle(color: context.appColors.error),
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -173,25 +201,35 @@ class _RecurrenceDialogState extends ConsumerState<_RecurrenceDialog> {
       children: [
         Text(label),
         const SizedBox(height: 4),
-        AppDateTimePicker(builder: (context, picker) => ShadButton.outline(
-          focusNode: picker.focusNode,
-          enabled: !_saving,
-          leading: const Icon(LucideIcons.calendar, size: 16),
-          onPressed: _saving ? null : () async {
-            final picked = await picker.pickDate(
-              initialDate: value,
-              firstDate: DateTime(value.year - 5),
-              lastDate: DateTime(value.year + 10),
-              helpText: label,
-            );
-            if (picked == null || !mounted) return;
-            setState(() {
-              if (isStart) { _start = picked; } else { _end = picked; }
-              _error = null;
-            });
-          },
-          child: Text(MaterialLocalizations.of(context).formatMediumDate(value)),
-        )),
+        AppDateTimePicker(
+          builder: (context, picker) => ShadButton.outline(
+            focusNode: picker.focusNode,
+            enabled: !_saving,
+            leading: const Icon(LucideIcons.calendar, size: 16),
+            onPressed: _saving
+                ? null
+                : () async {
+                    final picked = await picker.pickDate(
+                      initialDate: value,
+                      firstDate: DateTime(value.year - 5),
+                      lastDate: DateTime(value.year + 10),
+                      helpText: label,
+                    );
+                    if (picked == null || !mounted) return;
+                    setState(() {
+                      if (isStart) {
+                        _start = picked;
+                      } else {
+                        _end = picked;
+                      }
+                      _error = null;
+                    });
+                  },
+            child: Text(
+              MaterialLocalizations.of(context).formatMediumDate(value),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -207,35 +245,48 @@ class _RecurrenceDialogState extends ConsumerState<_RecurrenceDialog> {
       setState(() => _error = context.l10n.recurrenceInvalidDateRange);
       return;
     }
-    await _persist(TaskRecurrence(
-      interval: interval,
-      unit: _unit,
-      seriesId: widget.task.schedule?.recurrence?.seriesId ??
-          'rec-${DateTime.now().toUtc().microsecondsSinceEpoch}',
-      startDate: _start,
-      endDate: _end,
-    ));
+    await _persist(
+      TaskRecurrence(
+        interval: interval,
+        unit: _unit,
+        seriesId:
+            widget.task.schedule?.recurrence?.seriesId ??
+            'rec-${DateTime.now().toUtc().microsecondsSinceEpoch}',
+        startDate: _start,
+        endDate: _end,
+      ),
+    );
   }
 
   Future<void> _persist(TaskRecurrence? recurrence) async {
     if (_saving) return;
-    setState(() { _saving = true; _error = null; });
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
     try {
-      await ref.read(taskRepositoryProvider).updateTaskRecurrence(
-        widget.task.id,
-        recurrence: recurrence,
-        startDate: recurrence != null &&
-            (widget.task.schedule?.recurrence == null || _start != _initialStart)
-            ? _start : null,
-      );
+      await ref
+          .read(taskRepositoryProvider)
+          .updateTaskRecurrence(
+            widget.task.id,
+            recurrence: recurrence,
+            startDate:
+                recurrence != null &&
+                    (widget.task.schedule?.recurrence == null ||
+                        _start != _initialStart)
+                ? _start
+                : null,
+          );
       if (!mounted) return;
       setState(() => _saving = false);
       Navigator.of(context).pop();
     } catch (_) {
-      if (mounted) setState(() {
-        _saving = false;
-        _error = context.l10n.recurrenceSaveFailed;
-      });
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error = context.l10n.recurrenceSaveFailed;
+        });
+      }
     }
   }
 }

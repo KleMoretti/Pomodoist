@@ -1784,6 +1784,30 @@ class AppLocalizationsDe extends AppLocalizations {
   String get timedBlock => 'Zeitblock';
 
   @override
+  String get recurrenceStartDate => 'Start date';
+
+  @override
+  String get recurrenceEndDate => 'End date (inclusive)';
+
+  @override
+  String get recurrenceNoEnd => 'No end date';
+
+  @override
+  String get recurrenceStop => 'Stop repeating';
+
+  @override
+  String get recurrenceInvalidDateRange =>
+      'The end date must not be before the start date.';
+
+  @override
+  String get recurrenceSaveFailed =>
+      'Could not save repeat settings. Please try again.';
+
+  @override
+  String get recurrenceDescription =>
+      'Repeat within these dates. Missed occurrences while the app is closed are skipped. Stopping keeps tasks already created.';
+
+  @override
   String get recurrenceTitle => 'Repeat';
 
   @override
