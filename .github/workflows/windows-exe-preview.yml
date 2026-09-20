@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   validate-ref:
-    name: Require main branch or release tag
+    name: Require main, release tag, or the manual feature preview
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -23,6 +23,9 @@ jobs:
       - name: Reject unsupported ref
         run: |
           number='(0|[1-9][0-9]*)'
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch && "$GITHUB_REF" == refs/heads/codex/chinese-default-task-recurrence ]]; then
+            exit 0
+          fi
           if [[ "$GITHUB_REF" != refs/heads/main && ! "$GITHUB_REF" =~ ^refs/tags/v$number\.$number\.$number(-rc\.$number)?$ ]]; then
             echo 'Windows builds require main, vX.Y.Z, or vX.Y.Z-rc.N.' >&2
             exit 64
@@ -32,7 +35,7 @@ jobs:
     name: Build and verify unsigned EXE
     needs: validate-ref
     runs-on: windows-2022
-    environment: windows-production
+    environment: ${{ github.ref == 'refs/heads/codex/chinese-default-task-recurrence' && 'windows-preview' || 'windows-production' }}
     permissions:
       contents: read
     outputs:
@@ -72,6 +75,35 @@ jobs:
         with:
           flutter-version-file: .fvmrc
       - run: flutter pub get
+      - name: Generate translations and format feature changes
+        if: github.ref == 'refs/heads/codex/chinese-default-task-recurrence'
+        run: |
+          flutter gen-l10n
+          if ($LASTEXITCODE -ne 0) { throw 'Localization generation failed.' }
+          dart format lib/app/app_language.dart lib/app/app_l10n.dart lib/features/tasks/domain/task_models.dart lib/features/tasks/data/task_repository_impl.dart lib/features/tasks/presentation/task_detail_screen.dart lib/features/tasks/presentation/task_recurrence_button.dart test/chinese_recurrence_test.dart test/core_features_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Formatting failed.' }
+      - name: Save generated sources for SDK-free development
+        if: github.ref == 'refs/heads/codex/chinese-default-task-recurrence'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: feature-generated-sources
+          path: |
+            lib/l10n/app_localizations*.dart
+            lib/app/app_language.dart
+            lib/app/app_l10n.dart
+            lib/features/tasks/domain/task_models.dart
+            lib/features/tasks/data/task_repository_impl.dart
+            lib/features/tasks/presentation/task_detail_screen.dart
+            lib/features/tasks/presentation/task_recurrence_button.dart
+            test/chinese_recurrence_test.dart
+            test/core_features_test.dart
+      - name: Analyze and run minimal feature tests
+        if: github.ref == 'refs/heads/codex/chinese-default-task-recurrence'
+        run: |
+          flutter analyze --no-pub
+          if ($LASTEXITCODE -ne 0) { throw 'Static analysis failed.' }
+          flutter test --no-pub test/chinese_recurrence_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Feature tests failed.' }
       - name: Test installer packaging boundary
         run: >-
           powershell.exe -NoProfile -ExecutionPolicy Bypass
@@ -94,6 +126,7 @@ jobs:
             throw "Inno Setup compiler hash mismatch: $actualCompilerHash"
           }
       - name: Validate and write production configuration
+        if: github.ref != 'refs/heads/codex/chinese-default-task-recurrence'
         env:
           WEB_APP_URL: ${{ vars.WEB_APP_URL }}
           TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
@@ -120,12 +153,20 @@ jobs:
             -LiteralPath "$env:RUNNER_TEMP\windows-production.json" `
             -Encoding utf8
       - name: Build Flutter release
+        if: github.ref != 'refs/heads/codex/chinese-default-task-recurrence'
         run: >-
           powershell.exe -NoProfile -ExecutionPolicy Bypass
           -File .\tool\windows\build.ps1
           -Configuration Release
           -ConfigFile "$env:RUNNER_TEMP\windows-production.json"
           -ReleaseSha $env:GITHUB_SHA
+      - name: Build local-mode feature preview
+        if: github.ref == 'refs/heads/codex/chinese-default-task-recurrence'
+        run: >-
+          flutter build windows --release
+          --dart-define=POMODOIST_ENVIRONMENT=local
+          --dart-define=POMODOIST_BILLING_CHANNEL=stripe
+          --dart-define=POMODOIST_RELEASE=${{ github.sha }}
       - name: Remove production configuration
         if: always()
         run: >-
@@ -175,7 +216,7 @@ jobs:
 
   publish:
     name: Publish Windows EXE
-    environment: windows-production
+    environment: ${{ github.ref == 'refs/heads/codex/chinese-default-task-recurrence' && 'windows-preview' || 'windows-production' }}
     needs: build-test
     runs-on: ubuntu-latest
     permissions:
@@ -250,6 +291,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.build-test.outputs.version }}
+          SOURCE_BRANCH: ${{ github.ref_name }}
         run: |
           tag="windows-preview-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
           notes=$(cat <<EOF
@@ -258,12 +300,18 @@ jobs:
           Download \`Pomodoist-Setup.exe\`, open it, and Pomodoist will install for the current user and start automatically. This x64 preview runs on x64 Windows 10/11 and through x64 compatibility on Windows 11 Arm64.
 
           Source commit: ${GITHUB_SHA}
+          Source branch: ${SOURCE_BRANCH}
           EOF
           )
+          if [[ "$SOURCE_BRANCH" == codex/chinese-default-task-recurrence ]]; then
+            notes+=$'\n\nLocal-mode feature preview: Chinese by default and repeat date ranges. Cloud sign-in and sync are not configured in this package.\n\nManual checks: confirm Chinese after upgrading; change the language and restart; save and reopen a daily/weekly/monthly repeat with an end date; stop repeating and verify existing tasks remain.'
+          fi
+          printf '%s\n' "$notes" > "$RUNNER_TEMP/preview-notes.md"
           gh release create "$tag" \
             --target "$GITHUB_SHA" \
             --prerelease \
+            --latest=false \
             --title "Pomodoist $VERSION Windows preview" \
-            --notes "$notes" \
+            --notes-file "$RUNNER_TEMP/preview-notes.md" \
             release/Pomodoist-Setup.exe \
             release/Pomodoist-Setup.exe.sha256

@@ -142,12 +142,12 @@ class TaskSchedule {
     return withRecurrenceSeriesId(keepSeriesId ? recurrenceSeriesKey : null);
   }
 
-  TaskSchedule nextOccurrence() {
+  TaskSchedule? nextOccurrence() {
     final repeat = recurrence;
     if (repeat == null) {
-      return this;
+      return null;
     }
-    return switch (kind) {
+    final next = switch (kind) {
       TaskScheduleKind.allDay => TaskSchedule.allDay(
         _addRecurrence(date!, repeat),
         recurrence: repeat,
@@ -163,14 +163,26 @@ class TaskSchedule {
         );
       }(),
     };
-  }
-
-  TaskSchedule nextOccurrenceAfter(DateTime now, {bool advanceFirst = false}) {
-    var next = advanceFirst ? nextOccurrence() : this;
-    while (!next.occurrenceStartLocal.isAfter(now.toLocal())) {
-      next = next.nextOccurrence();
+    if (repeat.endDate != null && next.displayDate.isAfter(repeat.endDate!)) {
+      return null;
     }
     return next;
+  }
+
+  TaskSchedule? nextOccurrenceAfter(DateTime now, {bool advanceFirst = false}) {
+    final repeat = recurrence;
+    if (repeat == null) return null;
+    TaskSchedule? next = advanceFirst ? nextOccurrence() : this;
+    while (next != null) {
+      final day = next.displayDate;
+      if (repeat.endDate != null && day.isAfter(repeat.endDate!)) return null;
+      if (next.occurrenceStartLocal.isAfter(now.toLocal()) &&
+          (repeat.startDate == null || !day.isBefore(repeat.startDate!))) {
+        return next;
+      }
+      next = next.nextOccurrence();
+    }
+    return null;
   }
 
   String toJsonString() {
@@ -341,15 +353,25 @@ class TaskRecurrence {
     required this.interval,
     required this.unit,
     required this.seriesId,
+    this.startDate,
+    this.endDate,
   }) : assert(interval >= 1 && interval <= 999),
        assert(seriesId.length > 0);
 
   final int interval;
   final TaskRecurrenceUnit unit;
   final String seriesId;
+  final DateTime? startDate;
+  final DateTime? endDate;
 
   Map<String, Object?> toJson() {
-    return {'interval': interval, 'unit': unit.name, 'seriesId': seriesId};
+    return {
+      'interval': interval,
+      'unit': unit.name,
+      'seriesId': seriesId,
+      if (startDate != null) 'startDate': TaskSchedule._formatDate(startDate!),
+      if (endDate != null) 'endDate': TaskSchedule._formatDate(endDate!),
+    };
   }
 
   static TaskRecurrence? fromJson(Object? raw) {
@@ -374,7 +396,20 @@ class TaskRecurrence {
         seriesId.trim().isEmpty) {
       return null;
     }
-    return TaskRecurrence(interval: interval, unit: unit, seriesId: seriesId);
+    final startDate = TaskSchedule._parseDateOnly(json['startDate']);
+    final endDate = TaskSchedule._parseDateOnly(json['endDate']);
+    if ((json['startDate'] != null && startDate == null) ||
+        (json['endDate'] != null && endDate == null) ||
+        (startDate != null && endDate != null && endDate.isBefore(startDate))) {
+      return null;
+    }
+    return TaskRecurrence(
+      interval: interval,
+      unit: unit,
+      seriesId: seriesId,
+      startDate: startDate,
+      endDate: endDate,
+    );
   }
 
   @override
@@ -383,11 +418,13 @@ class TaskRecurrence {
         other is TaskRecurrence &&
             other.interval == interval &&
             other.unit == unit &&
-            other.seriesId == seriesId;
+            other.seriesId == seriesId &&
+            other.startDate == startDate &&
+            other.endDate == endDate;
   }
 
   @override
-  int get hashCode => Object.hash(interval, unit, seriesId);
+  int get hashCode => Object.hash(interval, unit, seriesId, startDate, endDate);
 }
 
 enum TaskRecurrenceUnit { day, week, month }
@@ -786,6 +823,12 @@ abstract interface class TaskRepository {
     required bool includeSubtasks,
   });
   Future<void> updateTask(String id, UpdateTaskPatch patch);
+  Stream<TaskItem?> watchRecurrenceTask(String id);
+  Future<void> updateTaskRecurrence(
+    String id, {
+    required TaskRecurrence? recurrence,
+    DateTime? startDate,
+  });
   Future<void> materializeDueRecurringTasks({DateTime? now});
   Future<void> moveTask(
     String id, {

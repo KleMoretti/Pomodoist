@@ -314,6 +314,17 @@ panel size including decoration, and scroll content within that area. Recompute
 placement after scrolling or resizing; when neither side can hold a control,
 use the visible viewport with overlap rather than placing controls off-screen.
 
+### Task recurrence
+
+Task details expose Repeat next to Schedule, with the active frequency as its
+label. Resolve the current rule across the series even when an earlier copy is
+selected. The editor keeps interval, day/week/month unit, start date, and optional
+inclusive end date as a draft until Save. Use `AppDateTimePicker` for both dates.
+Cancel makes no changes; failed saves retain the draft. Stop repeating preserves
+existing copies. Keep the panel scrollable on short screens and disable submission
+while saving. Unscheduled tasks become all-day; timed tasks retain their time and
+duration. Advancing the series skips missed occurrences and respects its end date.
+
 ### Task row styles
 
 Modern is the default shared task row layout; Classic preserves the previous

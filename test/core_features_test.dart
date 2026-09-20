@@ -257,7 +257,7 @@ void main() {
       expect(parsed!.recurrence, recurrence);
       expect(parsed.recurrenceSeriesId, isNull);
       expect(
-        parsed.nextOccurrenceAfter(DateTime(2026, 5, 20, 12)).start!.toLocal(),
+        parsed.nextOccurrenceAfter(DateTime(2026, 5, 20, 12))!.start!.toLocal(),
         DateTime(2026, 5, 29, 10),
       );
       expect(
@@ -268,7 +268,7 @@ void main() {
             unit: TaskRecurrenceUnit.month,
             seriesId: 'month-end',
           ),
-        ).nextOccurrence().date,
+        ).nextOccurrence()!.date,
         DateTime(2026, 2, 28),
       );
 

@@ -11,11 +11,8 @@ import 'package:shadcn_ui/shadcn_ui.dart'
         ShadIconButton,
         ShadInput,
         ShadMenubar,
-        ShadMenubarItem,
-        ShadTab,
-        ShadTabs;
+        ShadMenubarItem;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/app_l10n.dart';
@@ -33,6 +30,7 @@ import '../../planning/domain/quick_add_parser.dart';
 import '../domain/task_focus_estimate.dart';
 import '../domain/task_models.dart';
 import 'task_completion_feedback.dart';
+import 'task_recurrence_button.dart';
 import 'widgets/quick_add_bar.dart';
 import 'widgets/quick_add_text_controller.dart';
 import 'widgets/task_list_item.dart';
@@ -326,11 +324,6 @@ class TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                             const SizedBox(height: 16),
                             ExpansionTile(
                               tilePadding: EdgeInsets.zero,
-                              title: Text(l10n.recurrenceTitle),
-                              children: [_RecurrenceActions(task: item)],
-                            ),
-                            ExpansionTile(
-                              tilePadding: EdgeInsets.zero,
                               title: Text(l10n.focusHistory),
                               children: [_FocusHistory(taskId: item.id)],
                             ),
@@ -550,6 +543,7 @@ class _TaskMetadataChips extends ConsumerWidget {
             ),
           ),
         ),
+        TaskRecurrenceButton(task: task),
         ShadBadge.secondary(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
           child: Row(
@@ -1125,174 +1119,6 @@ class _ScheduleActions extends ConsumerWidget {
   }
 }
 
-class _RecurrenceActions extends ConsumerStatefulWidget {
-  const _RecurrenceActions({required this.task});
-
-  final TaskItem task;
-
-  @override
-  ConsumerState<_RecurrenceActions> createState() => _RecurrenceActionsState();
-}
-
-class _RecurrenceActionsState extends ConsumerState<_RecurrenceActions> {
-  final _controller = TextEditingController();
-  final _focusNode = FocusNode();
-  String? _errorText;
-
-  @override
-  void initState() {
-    super.initState();
-    _showInterval(widget.task.schedule?.recurrence?.interval ?? 1);
-  }
-
-  @override
-  void didUpdateWidget(covariant _RecurrenceActions oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (_focusNode.hasFocus) {
-      return;
-    }
-    _showInterval(widget.task.schedule?.recurrence?.interval ?? 1);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final schedule = widget.task.schedule;
-    final recurrence = schedule?.recurrence;
-    final unit = recurrence?.unit ?? TaskRecurrenceUnit.day;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ShadInput(
-          key: const Key('task-recurrence-interval-input'),
-          controller: _controller,
-          focusNode: _focusNode,
-          enabled: schedule != null,
-          keyboardType: TextInputType.number,
-          textInputAction: TextInputAction.done,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          onSubmitted: (_) => _save(unit),
-          top: Text(l10n.recurrenceIntervalLabel),
-          leading: const Icon(LucideIcons.repeat),
-          bottom: _errorText == null
-              ? null
-              : Text(
-                  _errorText!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-        ),
-        const SizedBox(height: 10),
-        IntrinsicWidth(
-          child: ShadTabs<TaskRecurrenceUnit>(
-            key: const Key('task-recurrence-unit-select'),
-            value: unit,
-            gap: 0,
-            tabs: [
-              ShadTab(
-                value: TaskRecurrenceUnit.day,
-                enabled: schedule != null,
-                child: Text(l10n.recurrenceUnitDay),
-              ),
-              ShadTab(
-                value: TaskRecurrenceUnit.week,
-                enabled: schedule != null,
-                child: Text(l10n.recurrenceUnitWeek),
-              ),
-              ShadTab(
-                value: TaskRecurrenceUnit.month,
-                enabled: schedule != null,
-                child: Text(l10n.recurrenceUnitMonth),
-              ),
-            ],
-            onChanged: _save,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            ShadButton(
-              key: const Key('task-recurrence-save-button'),
-              onPressed: schedule == null ? null : () => _save(unit),
-              enabled: !(schedule == null),
-              leading: const Icon(LucideIcons.repeat),
-              child: Text(l10n.commonSave),
-            ),
-            if (recurrence != null)
-              ShadButton.ghost(
-                key: const Key('task-recurrence-clear-button'),
-                onPressed: _clear,
-                leading: const Icon(LucideIcons.repeat1),
-                child: Text(l10n.commonClear),
-              ),
-          ],
-        ),
-        if (schedule == null) ...[
-          const SizedBox(height: 8),
-          Text(
-            l10n.recurrenceNeedsSchedule,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  void _showInterval(int interval) {
-    _controller.value = TextEditingValue(
-      text: '$interval',
-      selection: TextSelection.collapsed(offset: '$interval'.length),
-    );
-  }
-
-  Future<void> _save(TaskRecurrenceUnit unit) async {
-    final schedule = widget.task.schedule;
-    if (schedule == null) {
-      return;
-    }
-    final interval = int.tryParse(_controller.text);
-    if (interval == null || interval < 1 || interval > 999) {
-      setState(() => _errorText = context.l10n.recurrenceInvalidInterval);
-      return;
-    }
-    setState(() => _errorText = null);
-    final existing = schedule.recurrence;
-    final recurrence = TaskRecurrence(
-      interval: interval,
-      unit: unit,
-      seriesId: existing?.seriesId ?? _newRecurrenceSeriesId(),
-    );
-    await _setTaskSchedule(
-      ref,
-      widget.task,
-      schedule.withRecurrence(recurrence),
-    );
-  }
-
-  Future<void> _clear() async {
-    final schedule = widget.task.schedule;
-    if (schedule == null) {
-      return;
-    }
-    await _setTaskSchedule(
-      ref,
-      widget.task,
-      schedule.withoutRecurrence(),
-      preserveRecurrence: false,
-    );
-  }
-}
-
 Future<void> _pickAllDaySchedule(
   BuildContext context,
   WidgetRef ref,
@@ -1386,10 +1212,6 @@ Future<void> _clearTaskSchedule(WidgetRef ref, TaskItem task) async {
 DateTime _today(WidgetRef ref) {
   final now = ref.read(clockProvider).now().toLocal();
   return DateTime(now.year, now.month, now.day);
-}
-
-String _newRecurrenceSeriesId() {
-  return 'rec-${DateTime.now().toUtc().microsecondsSinceEpoch}';
 }
 
 Color _priorityColor(int priority, AppThemePalette colors) {

@@ -1,13 +1,13 @@
 import 'package:flutter/widgets.dart';
 import 'package:pomodoist/l10n/app_localizations.dart';
-import 'package:pomodoist/l10n/app_localizations_en.dart';
+import 'package:pomodoist/l10n/app_localizations_zh.dart';
 
 import 'keyboard_shortcuts.dart';
 
 extension AppL10nContext on BuildContext {
   AppLocalizations get l10n =>
       Localizations.of<AppLocalizations>(this, AppLocalizations) ??
-      AppLocalizationsEn();
+      AppLocalizationsZh();
 }
 
 String appShortcutLabel(AppLocalizations l10n, AppShortcutCommand command) =>

@@ -63,6 +63,63 @@ class DriftTaskRepository implements TaskRepository {
     );
   }
 
+  TaskRow? _recurrenceTask(List<TaskRow> rows, String id) {
+    final selected = rows.firstWhereOrNull((row) => row.id == id);
+    if (selected == null) return null;
+    final series = TaskSchedule.fromJsonString(selected.dueJson)?.recurrenceSeriesKey;
+    if (series == null) return selected;
+    return rows.firstWhereOrNull((row) {
+      final schedule = TaskSchedule.fromJsonString(row.dueJson);
+      return schedule?.recurrence?.seriesId == series;
+    }) ?? selected;
+  }
+
+  @override
+  Stream<TaskItem?> watchRecurrenceTask(String id) {
+    return (_db.select(_db.tasks)..where((row) => row.isDeleted.equals(false)))
+        .watch()
+        .map((rows) {
+          final row = _recurrenceTask(rows, id);
+          return row == null ? null : _mapTask(row);
+        });
+  }
+
+  @override
+  Future<void> updateTaskRecurrence(
+    String id, {
+    required TaskRecurrence? recurrence,
+    DateTime? startDate,
+  }) async {
+    if (recurrence != null &&
+        (recurrence.interval < 1 || recurrence.interval > 999 ||
+         recurrence.startDate != null && recurrence.endDate != null &&
+         recurrence.endDate!.isBefore(recurrence.startDate!))) {
+      throw ArgumentError('Invalid recurrence');
+    }
+    await _db.transaction(() async {
+      final rows = await (_db.select(_db.tasks)
+        ..where((row) => row.isDeleted.equals(false))).get();
+      // The active rule moves to the next copy during materialization. Resolve
+      // it again inside the transaction so editing an earlier copy is safe.
+      final target = _recurrenceTask(rows, id);
+      if (target == null) throw StateError('Task no longer exists');
+      final existing = TaskSchedule.fromJsonString(target.dueJson);
+      if (recurrence == null) {
+        if (existing?.recurrence != null) {
+          await updateTask(target.id, UpdateTaskPatch(
+            schedule: existing!.withoutRecurrence(keepSeriesId: true),
+          ));
+        }
+        return;
+      }
+      var schedule = existing ?? TaskSchedule.allDay(startDate ?? DateTime.now());
+      if (startDate != null) schedule = schedule.moveToDate(startDate);
+      await updateTask(target.id, UpdateTaskPatch(
+        schedule: schedule.withRecurrence(recurrence),
+      ));
+    });
+  }
+
   @override
   Future<String> createTask(CreateTaskInput input) async {
     final id = _uuid.v4();
@@ -678,6 +735,7 @@ class DriftTaskRepository implements TaskRepository {
         DateTime.now(),
         advanceFirst: true,
       );
+      if (nextSchedule == null) continue;
       final nextRootId = _recurringTaskId(
         recurrence,
         _occurrenceKey(nextSchedule),
@@ -962,6 +1020,7 @@ class DriftTaskRepository implements TaskRepository {
       localNow,
       advanceFirst: advanceFirst,
     );
+    if (nextSchedule == null) return;
     final occurrenceKey = _occurrenceKey(nextSchedule);
     final nextRootId = _recurringTaskId(recurrence, occurrenceKey, row.id);
     if (rowById.containsKey(nextRootId) || await _taskExists(nextRootId)) {
@@ -1116,6 +1175,8 @@ class DriftTaskRepository implements TaskRepository {
         interval: recurrence.interval,
         unit: recurrence.unit,
         seriesId: seriesId,
+        startDate: recurrence.startDate,
+        endDate: recurrence.endDate,
       ),
     );
   }

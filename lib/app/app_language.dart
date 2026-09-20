@@ -1,10 +1,9 @@
-import 'dart:async';
-
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const appLanguagePreferenceKey = 'app.language';
+const appLanguageChineseMigrationKey = 'app.language.chineseDefault.v1';
 
 enum AppLanguage {
   system(null, 'System default'),
@@ -26,7 +25,7 @@ enum AppLanguage {
   static AppLanguage fromStorageValue(String? value) {
     return AppLanguage.values.firstWhere(
       (language) => language.storageValue == value,
-      orElse: () => AppLanguage.system,
+      orElse: () => AppLanguage.zh,
     );
   }
 }
@@ -37,16 +36,16 @@ final appLanguageProvider =
     );
 
 class AppLanguageController extends Notifier<AppLanguage> {
-  bool _loaded = false;
+  Future<void>? _load;
+  Future<void> _writes = Future<void>.value();
   bool _hasLocalSelection = false;
+
+  Future<void> get ready => _load ?? Future<void>.value();
 
   @override
   AppLanguage build() {
-    if (!_loaded) {
-      _loaded = true;
-      unawaited(_loadStoredLanguage());
-    }
-    return AppLanguage.system;
+    _load ??= _loadStoredLanguage();
+    return AppLanguage.zh;
   }
 
   Future<void> setLanguage(AppLanguage language) async {
@@ -54,17 +53,33 @@ class AppLanguageController extends Notifier<AppLanguage> {
     if (state != language) {
       state = language;
     }
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(appLanguagePreferenceKey, language.storageValue);
+    await _persist(language);
+  }
+
+  Future<void> _persist(AppLanguage language) {
+    return _writes = _writes.catchError((Object _) {}).then((_) async {
+      final prefs = await SharedPreferences.getInstance();
+      if (!await prefs.setString(appLanguagePreferenceKey, language.storageValue)) {
+        throw StateError('Could not save language');
+      }
+      if (!await prefs.setBool(appLanguageChineseMigrationKey, true)) {
+        throw StateError('Could not save language migration');
+      }
+    });
   }
 
   Future<void> _loadStoredLanguage() async {
-    final prefs = await SharedPreferences.getInstance();
-    final stored = AppLanguage.fromStorageValue(
-      prefs.getString(appLanguagePreferenceKey),
-    );
-    if (ref.mounted && !_hasLocalSelection) {
-      state = stored;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (!ref.mounted || _hasLocalSelection) return;
+      final migrated = prefs.getBool(appLanguageChineseMigrationKey) ?? false;
+      final stored = migrated
+          ? AppLanguage.fromStorageValue(prefs.getString(appLanguagePreferenceKey))
+          : AppLanguage.zh;
+      if (!migrated) await _persist(stored);
+      if (ref.mounted && !_hasLocalSelection) state = stored;
+    } catch (_) {
+      // Keep Chinese for this session; retry an unfinished migration next launch.
     }
   }
 }
