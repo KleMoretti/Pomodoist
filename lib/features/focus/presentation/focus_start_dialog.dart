@@ -7,6 +7,7 @@ import 'package:shadcn_ui/shadcn_ui.dart' show LucideIcons;
 
 import '../../../app/app_l10n.dart';
 import '../../../app/providers.dart';
+import '../../../app/theme/app_motion.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../app/widgets/action_feedback.dart';
 import '../../tasks/domain/task_focus_estimate.dart';

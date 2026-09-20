@@ -28,6 +28,7 @@ import '../../../../app/theme/app_theme.dart';
 import '../../../../app/theme/theme_background.dart';
 import '../../../../app/widgets/action_feedback.dart';
 import '../../../focus/presentation/focus_start_dialog.dart';
+import '../../../focus/domain/focus_models.dart';
 import '../../domain/project_colors.dart';
 import '../../domain/task_models.dart';
 import '../widgets/project_color_picker.dart';
