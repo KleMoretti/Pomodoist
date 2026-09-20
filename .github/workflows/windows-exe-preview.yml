@@ -3,6 +3,9 @@ name: Windows EXE
 on:
   workflow_dispatch:
   push:
+    # Register this workflow in a fresh fork; feature builds still require dispatch.
+    branches:
+      - 'codex/chinese-default-task-recurrence'
     tags:
       - 'v*.*.*'
 
@@ -15,6 +18,7 @@ permissions:
 
 jobs:
   validate-ref:
+    if: github.event_name == 'workflow_dispatch' || github.ref_type == 'tag'
     name: Require main, release tag, or the manual feature preview
     runs-on: ubuntu-latest
     permissions:
