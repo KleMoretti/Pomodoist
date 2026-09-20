@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart' show LucideIcons;
 
 import '../../../app/app_l10n.dart';
+import '../../../app/formatters.dart';
 import '../../../app/providers.dart';
 import '../../../app/theme/app_motion.dart';
 import '../../../app/theme/app_theme.dart';
@@ -150,12 +151,13 @@ class _FocusStartDialogState extends ConsumerState<_FocusStartDialog> {
               Text(l10n.focusTaskLabel, style: Theme.of(context).textTheme.labelLarge),
               const SizedBox(height: 8),
               if (widget.task != null)
-                Text(_task!.content)
+                _FocusTaskSummary(task: _task!)
               else
                 OutlinedButton.icon(onPressed: _busy ? null : _chooseTask,
                   icon: const Icon(LucideIcons.listTodo, size: 18),
-                  label: Text(_task?.content ?? l10n.focusNoTask,
-                    maxLines: 2, overflow: TextOverflow.ellipsis)),
+                  label: _task == null
+                      ? Text(l10n.focusNoTask)
+                      : _FocusTaskSummary(task: _task!)),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 initialValue: _preset.id, isExpanded: true,
@@ -201,6 +203,33 @@ class _FocusStartDialogState extends ConsumerState<_FocusStartDialog> {
   }
 }
 
+class _FocusTaskSummary extends StatelessWidget {
+  const _FocusTaskSummary({required this.task});
+
+  final TaskItem task;
+
+  @override
+  Widget build(BuildContext context) {
+    final schedule = task.schedule;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(task.content, maxLines: 2, overflow: TextOverflow.ellipsis),
+        if (schedule != null) ...[
+          const SizedBox(height: 2),
+          Text(
+            formatTaskSchedule(context, schedule),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: context.appColors.secondaryText,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class _TaskChoice {
   const _TaskChoice(this.task);
   final TaskItem? task;
@@ -217,7 +246,10 @@ class _FocusTaskPickerState extends ConsumerState<_FocusTaskPicker> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final source = ref.watch(tasksByQueryProvider(const TaskQuery.all()));
+    final now = ref.watch(clockProvider).now().toLocal();
+    final today = DateTime(now.year, now.month, now.day);
+    final query = TaskQuery.day(today);
+    final source = ref.watch(tasksByQueryProvider(query));
     final tasks = (source.value ?? const <TaskItem>[]).where((task) =>
       !task.isCompleted && !task.isDeleted && task.content.toLowerCase().contains(_query)).toList();
     return AlertDialog(
@@ -230,10 +262,13 @@ class _FocusTaskPickerState extends ConsumerState<_FocusTaskPicker> {
           onTap: () => Navigator.pop(context, const _TaskChoice(null))),
         Expanded(child: source.isLoading ? const Center(child: CircularProgressIndicator())
           : source.hasError ? Center(child: TextButton(
-            onPressed: () => ref.invalidate(tasksByQueryProvider(const TaskQuery.all())), child: Text(l10n.commonRetry)))
+            onPressed: () => ref.invalidate(tasksByQueryProvider(query)), child: Text(l10n.commonRetry)))
           : tasks.isEmpty ? Center(child: Text(l10n.focusNoMatchingTasks))
           : ListView.builder(itemCount: tasks.length, itemBuilder: (_, index) => ListTile(
             title: Text(tasks[index].content, maxLines: 2, overflow: TextOverflow.ellipsis),
+            subtitle: tasks[index].schedule == null
+                ? null
+                : Text(formatTaskSchedule(context, tasks[index].schedule!)),
             onTap: () => Navigator.pop(context, _TaskChoice(tasks[index]))))),
       ])),
       actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.commonCancel))],
