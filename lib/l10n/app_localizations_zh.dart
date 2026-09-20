@@ -9,7 +9,7 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get settingsSectionGeneral => '通用';
+  String get settingsSectionGeneral => '常规';
 
   @override
   String get settingsSectionAppearance => '外观';
@@ -18,7 +18,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsSectionTasksFocus => '任务与专注';
 
   @override
-  String get settingsSectionIntegrations => '集成与数据';
+  String get settingsSectionIntegrations => '服务与数据';
 
   @override
   String get settingsSectionAccount => '账户与 Pro';
@@ -36,10 +36,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsSubscriptionActions => '管理订阅';
 
   @override
-  String get settingsSubscriptionError => '无法刷新订阅。此前已确认的访问权限将保留。';
+  String get settingsSubscriptionError => '暂时无法获取订阅状态，已开通的权益不受影响。';
 
   @override
-  String get settingsVersionError => '无法加载版本。';
+  String get settingsVersionError => '暂时无法获取版本信息。';
 
   @override
   String get appTitle => 'pomodoist';
@@ -84,13 +84,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingLanguageTitle => '选择语言';
 
   @override
-  String get onboardingLanguageSubtitle => '选择 Pomodoist 要使用的语言。';
+  String get onboardingLanguageSubtitle => '选择你习惯使用的语言。';
 
   @override
   String get onboardingTimerTitle => '选择计时器样式';
 
   @override
-  String get onboardingTimerSubtitle => '选择专注会话中的番茄钟进度视图。';
+  String get onboardingTimerSubtitle => '选择你喜欢的番茄钟显示方式。';
 
   @override
   String get onboardingPaywallTitle => '解锁 Pomodoist';
@@ -108,7 +108,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get startupPreparingTasks => '正在准备你的任务';
 
   @override
-  String get operationTakingLonger => '此操作耗时比平时更长，但仍在进行中。';
+  String get operationTakingLonger => '处理时间有些长，请再等一会儿。';
 
   @override
   String get onboardingContinue => '继续';
@@ -132,10 +132,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get billingCancelAnytime => '可随时取消。';
 
   @override
-  String get billingMonthlyTitle => '月度';
+  String get billingMonthlyTitle => '按月订阅';
 
   @override
-  String get billingAnnualTitle => '年度';
+  String get billingAnnualTitle => '按年订阅';
 
   @override
   String billingPricePerMonth(String price) {
@@ -158,7 +158,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get billingLifetimeTitle => '终身';
+  String get billingLifetimeTitle => '终身使用';
 
   @override
   String get billingLifetimeSubtitle => '一次付费，永久使用。';
@@ -218,7 +218,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get billingStripeDisabled => '付款功能尚未开放。请稍后重试。';
 
   @override
-  String get billingStripeAlreadyEntitled => 'Pomodoist Pro 已激活。请刷新帐户状态。';
+  String get billingStripeAlreadyEntitled => '你已开通 Pomodoist Pro，请刷新账户状态。';
 
   @override
   String get billingStripeOfferExpired => '此优惠已过期。请选择其他可用方案。';
@@ -243,7 +243,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get purchaseProcessingTitle => '付款处理中';
 
   @override
-  String get purchaseProcessingMessage => '正在确认付款。如果 Pro 未很快出现，请稍后再次刷新。';
+  String get purchaseProcessingMessage => '正在确认付款。如权益未及时生效，请稍后刷新账户状态。';
 
   @override
   String get purchaseOpenApp => '打开 Pomodoist';
@@ -266,7 +266,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loginTitle => '登录 Pomodoist';
 
   @override
-  String get accountChecking => '正在检查你的账户';
+  String get accountChecking => '正在获取账户信息';
 
   @override
   String get oauthConsentTitle => '连接智能体';
@@ -275,7 +275,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get oauthConsentLoading => '正在检查连接请求';
 
   @override
-  String get oauthConsentInvalidAuthorization => '此连接请求缺失或无效。';
+  String get oauthConsentInvalidAuthorization => '连接请求无效或不完整，请重新发起。';
 
   @override
   String get oauthConsentLoadError => '无法加载连接请求。';
@@ -284,14 +284,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get oauthConsentActionError => '无法完成请求，请重试。';
 
   @override
-  String get oauthConsentRedirectError => 'Pomodoist 收到了不安全或缺失的返回地址，未移交访问权限。';
+  String get oauthConsentRedirectError => '返回地址缺失或不安全，已取消授权。';
 
   @override
   String get oauthConsentClientFallback => '智能体';
 
   @override
   String oauthConsentClientRequest(String clientName) {
-    return '$clientName 想要访问 Pomodoist';
+    return '$clientName 请求访问你的 Pomodoist 数据';
   }
 
   @override
@@ -313,7 +313,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get oauthConsentUnavailable => '访问你的账户或账单、Google 日历或正在运行的专注计时器。';
 
   @override
-  String get oauthConsentUnsupportedScopes => '此请求要求不支持的账户访问权限，无法批准。';
+  String get oauthConsentUnsupportedScopes => '此请求包含不支持的访问权限，无法授权。';
 
   @override
   String get oauthConsentApprove => '允许';
@@ -322,7 +322,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get oauthConsentDeny => '拒绝';
 
   @override
-  String get oauthConsentApproving => '正在允许访问…';
+  String get oauthConsentApproving => '正在授权…';
 
   @override
   String get oauthConsentDenying => '正在拒绝请求…';
@@ -373,10 +373,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authWelcomeTitle => '登录 Pomodoist';
 
   @override
-  String get authWelcomeDescription => '你的任务与专注，跨设备随时同步。';
+  String get authWelcomeDescription => '随时查看任务和专注记录，多台设备同步更新。';
 
   @override
-  String get authSignInWithLink => '使用链接登录';
+  String get authSignInWithLink => '通过邮件链接登录';
 
   @override
   String get authForgotPassword => '忘记密码？';
@@ -418,7 +418,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authNewPasswordTitle => '设置新密码';
 
   @override
-  String get authNewPasswordDescription => '请使用未在其他账户中使用的密码。';
+  String get authNewPasswordDescription => '建议使用未在其他账户上用过的密码。';
 
   @override
   String get authNewPassword => '新密码';
@@ -433,7 +433,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authPasswordMismatch => '两次输入的密码不一致。';
 
   @override
-  String get authPasswordUnchanged => '请选择与当前密码不同的密码。';
+  String get authPasswordUnchanged => '新密码不能与当前密码相同。';
 
   @override
   String get authPasswordUpdatedTitle => '密码已更新';
@@ -490,10 +490,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authAccountMayExist => '此邮箱可能已有关联账户。请登录或重置密码。';
 
   @override
-  String get authRateLimited => '尝试次数过多。请等待几分钟后重试。';
+  String get authRateLimited => '操作过于频繁，请稍等几分钟再试。';
 
   @override
-  String get authEmailRateLimited => '请求邮件次数过多。请等待几分钟后再请求。';
+  String get authEmailRateLimited => '邮件发送过于频繁，请稍等几分钟再试。';
 
   @override
   String get authOffline => '无法连接账户服务。请检查网络连接后重试。';
@@ -534,7 +534,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authSignUpDisabled => '暂时无法使用邮箱创建账户。请使用其他登录方式。';
 
   @override
-  String get authAccountRestricted => '此账户目前无法登录。如果你认为这是错误，请联系支持。';
+  String get authAccountRestricted => '此账户暂时无法登录。如有疑问，请联系支持。';
 
   @override
   String get authLinkExpired => '此登录链接无效或已过期。请申请新链接。';
@@ -564,7 +564,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get captchaChallengeTitle => 'Pomodoist 安全验证';
 
   @override
-  String get captchaChallengePrompt => '请确认你是真人，以继续使用 Pomodoist。';
+  String get captchaChallengePrompt => '请完成人机验证，继续使用 Pomodoist。';
 
   @override
   String get captchaChallengeInvalid => '此安全验证链接无效。请返回 Pomodoist 后重试。';
@@ -586,7 +586,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get navPriorityMatrix => '优先级矩阵';
 
   @override
-  String get navTimeline => '时间线';
+  String get navTimeline => '时间轴';
 
   @override
   String get navKanban => '看板';
@@ -595,7 +595,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get kanbanTitle => '看板';
 
   @override
-  String get kanbanSubtitle => '可视化工作流程，专注当下最重要的事情。';
+  String get kanbanSubtitle => '按进度整理任务，清楚掌握每件事的状态。';
 
   @override
   String get kanbanDefaultBacklog => '待整理';
@@ -622,11 +622,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get kanbanShowDone => '显示已完成';
 
   @override
-  String get kanbanProjectsTitle => '此看板中的项目';
+  String get kanbanProjectsTitle => '看板显示的项目';
 
   @override
   String kanbanAddToStatus(String status) {
-    return '添加到$status';
+    return '添加到“$status”';
   }
 
   @override
@@ -646,11 +646,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String kanbanMoveTo(String status) {
-    return '移动到$status';
+    return '移至“$status”';
   }
 
   @override
-  String get kanbanRestoreBeforeFocus => '开始专注前请先恢复任务。';
+  String get kanbanRestoreBeforeFocus => '请先将任务恢复为未完成，再开始专注。';
 
   @override
   String kanbanCouldNotStartFocus(Object error) {
@@ -680,7 +680,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String kanbanFocusIntervalsProgress(int completed, int total) {
-    return '专注时段 $completed/$total';
+    return '已专注 $completed/$total 轮';
   }
 
   @override
@@ -693,12 +693,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String kanbanMoveAnnouncement(String status) {
-    return '已移动到$status';
+    return '已移至“$status”';
   }
 
   @override
   String kanbanFocusStartedAnnouncement(String task) {
-    return '已为$task开始专注';
+    return '已开始专注：“$task”';
   }
 
   @override
@@ -708,16 +708,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get navToday => '今天';
 
   @override
-  String get navUpcoming => '即将到来';
+  String get navUpcoming => '后续计划';
 
   @override
-  String get navBrowse => '浏览';
+  String get navBrowse => '概览';
 
   @override
-  String get navIntegrations => '集成';
+  String get navIntegrations => '关联服务';
 
   @override
-  String get navReports => '报告';
+  String get navReports => '统计';
 
   @override
   String get navFocus => '专注';
@@ -735,10 +735,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsAboutTitle => '关于';
 
   @override
-  String get settingsFocusCompletionCelebrationTitle => '专注完成庆祝';
+  String get settingsFocusCompletionCelebrationTitle => '专注完成动效';
 
   @override
-  String get settingsFocusCompletionCelebrationSubtitle => '在最后一次休息后显示全屏庆祝画面。';
+  String get settingsFocusCompletionCelebrationSubtitle =>
+      '完成全部专注和最后一次休息后，显示全屏庆祝动画。';
 
   @override
   String get settingsVersionLabel => '版本';
@@ -756,7 +757,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsShortcutsTitle => '键盘快捷键';
 
   @override
-  String get settingsShortcutsSubtitle => '自定义实体键盘可用的命令。';
+  String get settingsShortcutsSubtitle => '设置使用键盘操作 Pomodoist 的快捷键。';
 
   @override
   String get settingsShortcutsToggleSidebar => '显示或隐藏侧边栏';
@@ -765,23 +766,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsShortcutsGlobalQuickAdd => '全局快速添加';
 
   @override
-  String get settingsShortcutsGlobalQuickAddSubtitle => '即使 Pomodoist 未激活也可使用。';
+  String get settingsShortcutsGlobalQuickAddSubtitle =>
+      '无需切换到 Pomodoist，即可唤起快速添加。';
 
   @override
   String get settingsShortcutsRecordTitle => '按下快捷键';
 
   @override
   String get settingsShortcutsRecordPrompt =>
-      '请将按键与 Command、Control 或 Alt 组合使用。按 Esc 取消。';
+      '按下包含 Command、Control 或 Alt 的组合键。按 Esc 取消。';
 
   @override
-  String get settingsShortcutsInvalid => '请加入 Command、Control 或 Alt。';
+  String get settingsShortcutsInvalid => '组合键需要包含 Command、Control 或 Alt。';
 
   @override
   String get settingsShortcutsConflict => '此快捷键已被使用。';
 
   @override
-  String get settingsShortcutsGlobalError => '该全局快捷键不可用。先前的快捷键仍然有效。';
+  String get settingsShortcutsGlobalError => '无法使用这个全局快捷键，仍保留原来的设置。';
 
   @override
   String get settingsShortcutsResetAll => '全部重置';
@@ -793,16 +795,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get csvImportTitle => '从 CSV 导入任务';
 
   @override
-  String get csvImportSubtitle => '创建任务、项目、标签和状态前先检查 CSV 文件。';
+  String get csvImportSubtitle => '先预览导入内容，确认后再创建任务、项目、标签和看板状态。';
 
   @override
   String get csvImportSelectFile => '选择 CSV 文件';
 
   @override
-  String get csvImportHumanGuideButton => '用户说明';
+  String get csvImportHumanGuideButton => '导入说明';
 
   @override
-  String get csvImportAgentGuideButton => '智能体说明';
+  String get csvImportAgentGuideButton => 'AI 导入规范';
 
   @override
   String get csvImportHumanGuideTitle => '如何准备 CSV 文件';
@@ -832,7 +834,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get csvImportPreviewNewLabels => '新标签';
 
   @override
-  String get csvImportPreviewNewStatuses => '新状态';
+  String get csvImportPreviewNewStatuses => '新增看板状态';
 
   @override
   String get csvImportNone => '无';
@@ -854,7 +856,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get csvImportHumanGuide =>
-      '1. 将文件保存为 UTF-8 编码的 CSV。使用逗号（推荐）或分号作为分隔符。\n\n2. content 列为必填。还可使用：key, description, project, labels, priority, due_date, start_at, end_at, time_zone, recurrence, recurrence_interval, deadline, estimate, kanban_status, parent_key。\n\n3. 每行创建一个未完成任务。多个标签用 | 分隔。优先级为 1–4，空值表示 4。项目为空表示 Inbox，状态为空表示 Backlog。缺少的项目、标签和未完成状态会自动创建。\n\n4. 全天任务使用 YYYY-MM-DD 格式的 due_date。定时任务需填写带 UTC 偏移的 RFC3339 格式 start_at 和 end_at，并提供 IANA time_zone，例如 Asia/Shanghai。\n\n5. 创建子任务时，为父行设置唯一 key，并在子行的 parent_key 中填写该值。父行可以出现在文件后面。子任务必须与父任务使用同一项目。\n\n6. Pomodoist 会验证整个文件并在导入前显示预览。只要有一行无效，就不会保存任何内容。再次导入会创建重复任务。';
+      '1. 将文件保存为 UTF-8 编码的 CSV。使用逗号（推荐）或分号作为分隔符。\n\n2. content 列为必填。还可使用：key, description, project, labels, priority, due_date, start_at, end_at, time_zone, recurrence, recurrence_interval, deadline, estimate, kanban_status, parent_key。\n\n3. 每行创建一个未完成任务。多个标签用 | 分隔。优先级为 1–4，空值表示 4。项目留空时放入收件箱，状态留空时设为待整理。缺少的项目、标签和未完成状态会自动创建。\n\n4. 全天任务使用 YYYY-MM-DD 格式的 due_date。定时任务需填写带 UTC 偏移的 RFC3339 格式 start_at 和 end_at，并提供 IANA time_zone，例如 Asia/Shanghai。\n\n5. 创建子任务时，为父行设置唯一 key，并在子行的 parent_key 中填写该值。父行可以出现在文件后面。子任务必须与父任务使用同一项目。\n\n6. Pomodoist 会验证整个文件并在导入前显示预览。只要有一行无效，就不会保存任何内容。再次导入会创建重复任务。';
 
   @override
   String get settingsConnectedAgentsTitle => '已连接的智能体';
@@ -877,10 +879,10 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get settingsConnectedAgentsRevoke => '撤销访问权限';
+  String get settingsConnectedAgentsRevoke => '撤销授权';
 
   @override
-  String get settingsConnectedAgentsRevokeConfirmTitle => '撤销智能体访问权限？';
+  String get settingsConnectedAgentsRevokeConfirmTitle => '撤销智能体授权？';
 
   @override
   String settingsConnectedAgentsRevokeConfirmMessage(String clientName) {
@@ -900,24 +902,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsLanguageSystem => '跟随系统';
 
   @override
-  String get settingsVoiceTranscriptionTitle => '语音转写';
+  String get settingsVoiceTranscriptionTitle => '语音转文字';
 
   @override
-  String get settingsVoiceTranscriptionSubtitle => '选择如何在此设备上将录音转换为文字。';
+  String get settingsVoiceTranscriptionSubtitle => '选择录音转文字的处理方式。';
 
   @override
-  String get settingsVoiceTranscriptionSystem => '系统 (Apple)';
+  String get settingsVoiceTranscriptionSystem => '系统识别（Apple）';
 
   @override
-  String get settingsVoiceTranscriptionCloud => '云端';
+  String get settingsVoiceTranscriptionCloud => '云端识别';
 
   @override
   String get settingsVoiceTranscriptionCloudDescription =>
-      '云端转写会将音频发送到 Pomodoist，并且需要互联网连接。';
+      '录音将上传至 Pomodoist 进行识别，需要联网。';
 
   @override
   String get settingsVoiceTranscriptionCloudRequiresSignIn =>
-      '登录后可使用云端转写。在此之前将使用系统转写。';
+      '登录后可使用云端识别，当前将使用系统识别。';
 
   @override
   String get settingsThemeTitle => '主题';
@@ -935,10 +937,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsThemeDark => '深色';
 
   @override
-  String get settingsTimerVisualTitle => '番茄钟计时器';
+  String get settingsTimerVisualTitle => '番茄钟样式';
 
   @override
-  String get settingsTimerVisualSubtitle => '选择专注屏幕上的进度显示方式。';
+  String get settingsTimerVisualSubtitle => '选择专注页面的计时进度样式。';
 
   @override
   String get settingsTimerVisualBar => '进度条';
@@ -947,16 +949,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsTimerVisualCircle => '圆环';
 
   @override
-  String get settingsReturnRemindersTitle => '回归提醒';
+  String get settingsReturnRemindersTitle => '每日提醒';
 
   @override
-  String get settingsReturnRemindersSubtitle => '如果今天没有完成专注或任务，晚上给你一个轻提醒。';
+  String get settingsReturnRemindersSubtitle => '当天尚未完成任务或专注时，晚上提醒一次。';
 
   @override
-  String get settingsDefaultTimedBlockTitle => '默认日历块时长';
+  String get settingsDefaultTimedBlockTitle => '默认任务时长';
 
   @override
-  String get settingsDefaultTimedBlockSubtitle => '只输入时间时，新任务会使用这个日历时长。';
+  String get settingsDefaultTimedBlockSubtitle => '添加任务时若只填写开始时间，将按此时长安排结束时间。';
 
   @override
   String get settingsDefaultTimedBlockCustomLabel => '自定义时长';
@@ -968,7 +970,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsTaskTimeDisplayTitle => '任务时间显示';
 
   @override
-  String get settingsTaskTimeDisplaySubtitle => '选择如何显示有时间安排的任务。';
+  String get settingsTaskTimeDisplaySubtitle => '选择任务的开始和结束时间如何显示。';
 
   @override
   String get settingsTaskTimeDisplaySmart => '智能';
@@ -1004,7 +1006,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addTask => '添加任务';
 
   @override
-  String get quickAddHint => '写 sync engine 明天 p1 #App @coding 4p';
+  String get quickAddHint => '整理读书笔记 明天 09:00 #学习 2p';
 
   @override
   String couldNotAddTask(Object error) {
@@ -1030,23 +1032,23 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get voiceQuickAdd => '语音快速添加';
+  String get voiceQuickAdd => '语音添加任务';
 
   @override
   String get voiceTitle => '语音添加';
 
   @override
-  String get voiceRecord => '录制';
+  String get voiceRecord => '开始录音';
 
   @override
-  String get voiceAgain => '重来';
+  String get voiceAgain => '重新录音';
 
   @override
-  String get voiceStop => '停止';
+  String get voiceStop => '结束录音';
 
   @override
   String voiceAddCount(int count) {
-    return '添加 $count';
+    return '添加 $count 个任务';
   }
 
   @override
@@ -1058,52 +1060,52 @@ class AppLocalizationsZh extends AppLocalizations {
   String get voiceRemoveTask => '移除';
 
   @override
-  String get voiceInstruction => '点击录制并说出任务。';
+  String get voiceInstruction => '点击录音，说出你要做的事。';
 
   @override
-  String get voiceStatusIdle => '仅使用内置麦克风输入';
+  String get voiceStatusIdle => '将使用内置麦克风录音';
 
   @override
-  String get voiceStatusRequestingPermission => '正在请求访问权限';
+  String get voiceStatusRequestingPermission => '正在申请麦克风权限';
 
   @override
-  String get voiceStatusRecording => '正在监听内置麦克风';
+  String get voiceStatusRecording => '正在录音';
 
   @override
-  String get voiceStatusTranscribing => '正在转写录音';
+  String get voiceStatusTranscribing => '正在将录音转为文字';
 
   @override
-  String get voiceStatusCanceled => '录制已取消';
+  String get voiceStatusCanceled => '已取消录音';
 
   @override
-  String get voiceStatusUnsupported => '平台不受支持';
+  String get voiceStatusUnsupported => '当前设备暂不支持语音输入';
 
   @override
   String get voiceStatusError => '无法识别语音';
 
   @override
-  String get voiceStatusAnalyzing => '正在拆分为任务';
+  String get voiceStatusAnalyzing => '正在整理任务';
 
   @override
-  String get voiceStatusReview => '添加前请检查任务';
+  String get voiceStatusReview => '确认任务内容后再添加';
 
   @override
   String get voiceStepRecord => '录音';
 
   @override
-  String get voiceStepText => '文本';
+  String get voiceStepText => '识别文字';
 
   @override
-  String get voiceStepAnalyze => '分析';
+  String get voiceStepAnalyze => '整理任务';
 
   @override
-  String get voiceStepReview => '检查';
+  String get voiceStepReview => '确认内容';
 
   @override
-  String get voiceAnalyzing => 'Pomodoist 正在将语音拆分为任务';
+  String get voiceAnalyzing => '正在从录音中整理出任务';
 
   @override
-  String get voiceFallbackError => 'Pomodoist 无法处理语音，已保留草稿供手动编辑。';
+  String get voiceFallbackError => '暂时无法处理这段录音。草稿已保留，你可以手动编辑。';
 
   @override
   String get voiceMicrophoneUnavailable => '麦克风当前不可用。请结束正在进行的通话或语音聊天，然后重试。';
@@ -1112,10 +1114,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get voiceSmartMode => '智能模式';
 
   @override
-  String get voiceRetryTranscription => '重试转写';
+  String get voiceRetryTranscription => '重新识别';
 
   @override
-  String get voiceRecordingSaved => '录音已保存在此设备上。您可以重试，无需重新录音。';
+  String get voiceRecordingSaved => '录音已保存在本机，可以直接重试，无需重新录音。';
 
   @override
   String get voiceAllowAccess => '允许访问';
@@ -1130,7 +1132,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get voiceEnableDictation => '启用听写';
 
   @override
-  String get voiceUseCloudTranscription => '使用云端转写';
+  String get voiceUseCloudTranscription => '改用云端识别';
 
   @override
   String get voiceMicrophoneDenied => '请在系统设置中允许访问麦克风。';
@@ -1149,7 +1151,7 @@ class AppLocalizationsZh extends AppLocalizations {
       '语音识别暂不可用。请检查网络连接。在 Mac 上，还请检查“系统设置 → 键盘 → 听写”和所选语言。';
 
   @override
-  String get voiceCloudServiceUnavailable => '云端转写失败。请检查网络连接，然后重试转写已保存的录音。';
+  String get voiceCloudServiceUnavailable => '云端识别失败。请检查网络后，重新识别已保存的录音。';
 
   @override
   String get voiceLocaleUnsupported => '此设备的系统语音识别不支持所选语言。';
@@ -1162,25 +1164,25 @@ class AppLocalizationsZh extends AppLocalizations {
       '无法打开设置。请手动打开系统设置，检查麦克风和语音识别权限。在 Mac 上，还请检查“键盘 → 听写”。';
 
   @override
-  String get voiceRetryAnalysis => '重试分析';
+  String get voiceRetryAnalysis => '重新整理任务';
 
   @override
-  String get screenInboxSubtitle => '先收集任务，再进行整理。';
+  String get screenInboxSubtitle => '先记下来，稍后再安排。';
 
   @override
-  String get priorityMatrixSubtitle => '在优先级之间拖动任务。日期只用于排序同一优先级内的任务。';
+  String get priorityMatrixSubtitle => '拖动任务调整优先级。同一优先级内按日期排序。';
 
   @override
   String get priorityMatrixP1Title => '立即处理';
 
   @override
-  String get priorityMatrixP2Title => '安排计划';
+  String get priorityMatrixP2Title => '安排时间';
 
   @override
-  String get priorityMatrixP3Title => '委派';
+  String get priorityMatrixP3Title => '交给他人';
 
   @override
-  String get priorityMatrixP4Title => '移除';
+  String get priorityMatrixP4Title => '暂不处理';
 
   @override
   String get priorityMatrixAxisUrgent => '紧急';
@@ -1195,25 +1197,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String get priorityMatrixAxisNotImportant => '不重要';
 
   @override
-  String get timelineSubtitle => '在时间网格上规划一天。';
+  String get timelineSubtitle => '把任务安排到合适的时间，规划好每一天。';
 
   @override
   String get timelineAllDay => '全天';
 
   @override
-  String get timelineBeforeHours => '可见时间前';
+  String get timelineBeforeHours => '早于显示时段';
 
   @override
-  String get timelineAfterHours => '可见时间后';
+  String get timelineAfterHours => '晚于显示时段';
 
   @override
-  String get timelineVisibleHours => '可见时间';
+  String get timelineVisibleHours => '显示时段';
 
   @override
-  String get timelineStartHour => '开始';
+  String get timelineStartHour => '开始时间';
 
   @override
-  String get timelineEndHour => '结束';
+  String get timelineEndHour => '结束时间';
 
   @override
   String get timelineZoomOut => '缩小';
@@ -1223,7 +1225,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String timelineAddTimedHint(String time) {
-    return '$time 的任务';
+    return '安排在 $time 的任务';
   }
 
   @override
@@ -1233,7 +1235,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get timelineNoAllDayTasks => '没有全天任务';
 
   @override
-  String get timelineNoTimedTasks => '没有定时任务';
+  String get timelineNoTimedTasks => '暂无已安排时间的任务';
 
   @override
   String get timelinePreviousDay => '前一天';
@@ -1245,10 +1247,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get timelinePickDate => '选择日期';
 
   @override
-  String get upcomingPreviousPeriod => '上一时段';
+  String get upcomingPreviousPeriod => '上一段日期';
 
   @override
-  String get upcomingNextPeriod => '下一时段';
+  String get upcomingNextPeriod => '下一段日期';
 
   @override
   String get upcomingOpenDatePicker => '打开日期选择器';
@@ -1267,25 +1269,25 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String screenTodayFocusSummary(int planned, int completed, String focus) {
-    return '专注负载：$planned 个间隔 - 已完成：$completed - 专注：$focus';
+    return '计划专注 $planned 轮 · 已完成 $completed 轮 · 已专注 $focus';
   }
 
   @override
-  String get screenUpcomingSubtitle => '今天之后计划的任务。';
+  String get screenUpcomingSubtitle => '查看今天之后的任务安排。';
 
   @override
   String screenUpcomingSelectedSubtitle(String date) {
-    return '$date 的任务。';
+    return '$date 的任务安排。';
   }
 
   @override
-  String get noTasksHere => '这里没有任务';
+  String get noTasksHere => '暂无任务';
 
   @override
-  String get noUpcomingTasks => '没有带日期的任务';
+  String get noUpcomingTasks => '暂无已安排日期的任务';
 
   @override
-  String get noTasksForDay => '这一天没有计划任务';
+  String get noTasksForDay => '这一天还没有安排任务';
 
   @override
   String failedToLoadTasks(Object error) {
@@ -1296,10 +1298,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchTasks => '搜索任务';
 
   @override
-  String get searchStartTyping => '开始输入以搜索任务';
+  String get searchStartTyping => '输入关键词，查找任务';
 
   @override
-  String get searchNoMatches => '没有匹配的任务';
+  String get searchNoMatches => '没有找到相关任务';
 
   @override
   String failedToSearchTasks(Object error) {
@@ -1337,10 +1339,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get weekSun => '日';
 
   @override
-  String get browseTitle => '浏览';
+  String get browseTitle => '概览';
 
   @override
-  String get unifiedAccount => '统一账户';
+  String get unifiedAccount => '账户信息';
 
   @override
   String accountUnavailable(Object error) {
@@ -1355,13 +1357,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmation =>
-      '这将永久删除您的账户、云端数据，以及本地任务、项目和专注历史记录。此操作无法撤销。应用商店订阅不会自动取消。如果您使用了“通过 Apple 登录”，还需在 Apple 账户设置中单独撤销 Pomodoist 的访问权限。';
+      '这将永久删除你的账户、云端数据，以及本地任务、项目和专注历史记录。此操作无法撤销。应用商店订阅不会自动取消。如果你使用了“通过 Apple 登录”，还需在 Apple 账户设置中单独撤销 Pomodoist 的访问权限。';
 
   @override
-  String get manageSignInWithApple => '管理通过 Apple 登录';
+  String get manageSignInWithApple => '管理“通过 Apple 登录”';
 
   @override
-  String get deleteAccountFinalConfirmation => '您确定要继续吗？这是最后一次确认。';
+  String get deleteAccountFinalConfirmation => '确定永久删除账户吗？删除后无法恢复。';
 
   @override
   String deleteAccountError(Object error) {
@@ -1373,31 +1375,31 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get accountDeletedLocalCleanupError =>
-      '您的账户已删除，但无法清除本地数据。再次使用此设备前，请先清除应用数据。';
+      '你的账户已删除，但无法清除本地数据。再次使用此设备前，请先清除应用数据。';
 
   @override
   String get browseSevenDays => '7 天';
 
   @override
-  String get browseOpenNow => '当前未完成';
+  String get browseOpenNow => '待完成任务';
 
   @override
-  String get browseQueueLoading => '正在加载待发送的更改…';
+  String get browseQueueLoading => '正在读取待同步的更改…';
 
   @override
-  String get browseQueueUnavailable => '无法加载待发送的更改。';
+  String get browseQueueUnavailable => '暂时无法读取待同步的更改。';
 
   @override
-  String get browseQueueExplanation => '这里显示等待发送的本地更改。队列为空并不代表所有设备上的数据均已更新。';
+  String get browseQueueExplanation => '这里显示尚未上传的本地更改。没有待上传内容，并不表示所有设备都已同步完成。';
 
   @override
-  String get productivityTitle => '生产力';
+  String get productivityTitle => '效率概览';
 
   @override
   String get achievementsTitle => '成就';
 
   @override
-  String get allTimeLabel => '全部时间';
+  String get allTimeLabel => '累计';
 
   @override
   String get lastSevenDaysLabel => '最近 7 天';
@@ -1406,7 +1408,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noWeeklyStatsLabel => '暂无专注或任务数据';
 
   @override
-  String get completedFocuses => '已完成专注';
+  String get completedFocuses => '已完成轮次';
 
   @override
   String get completedTasks => '已完成任务';
@@ -1427,19 +1429,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get taskAchievements => '任务成就';
 
   @override
-  String get comboAchievements => '组合成就';
+  String get comboAchievements => '综合成就';
 
   @override
-  String get focusIntervals => '专注间隔';
+  String get focusIntervals => '专注轮次';
 
   @override
-  String get focusTime => '专注时间';
+  String get focusTime => '专注时长';
 
   @override
   String get openTasks => '未完成任务';
 
   @override
-  String get plannedIntervals => '计划间隔';
+  String get plannedIntervals => '计划轮次';
 
   @override
   String get labelsTitle => '标签';
@@ -1451,14 +1453,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get newLabel => '新标签';
 
   @override
-  String get syncReadyQueue => '待同步队列';
+  String get syncReadyQueue => '待同步更改';
 
   @override
   String pendingLocalCommands(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count 个本地命令待处理',
+      other: '$count 项更改待同步',
     );
     return '$_temp0';
   }
@@ -1496,7 +1498,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get projectsUnavailableShort => '项目不可用';
+  String get projectsUnavailableShort => '暂时无法加载项目';
 
   @override
   String get noProjects => '没有项目';
@@ -1508,7 +1510,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchLabels => '搜索标签';
 
   @override
-  String get archivedProjectsOnly => '仅归档项目';
+  String get archivedProjectsOnly => '仅显示已归档项目';
 
   @override
   String projectsCount(int count) {
@@ -1544,12 +1546,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String deleteProjectConfirmation(String name) {
-    return '删除 \"$name\"？此项目中的任务将移至 Inbox。';
+    return '删除“$name”？项目中的任务会移至收件箱。';
   }
 
   @override
   String deleteLabelConfirmation(String name) {
-    return '删除 \"$name\"？';
+    return '删除“$name”？';
   }
 
   @override
@@ -1577,16 +1579,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get projectFallbackTitle => '项目';
 
   @override
-  String get projectSubtitle => '列表视图 - 看板和日历在路线图中。';
+  String get projectSubtitle => '查看和整理这个项目中的任务。';
 
   @override
-  String get reportsTitle => '报告';
+  String get reportsTitle => '统计';
 
   @override
-  String get reportsFocusedDay => '今天专注得不错';
+  String get reportsFocusedDay => '今日专注';
 
   @override
-  String get reportsThisWeek => '本周专注情况';
+  String get reportsThisWeek => '本周专注';
 
   @override
   String get reportsNextAchievement => '下一个成就';
@@ -1611,16 +1613,16 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get backToReports => '返回报告';
+  String get backToReports => '返回统计';
 
   @override
   String reportsIntervalProgressSemantics(int completed, int target) {
-    return '已完成 $completed/$target 个专注时段';
+    return '已完成 $completed 轮专注，目标 $target 轮';
   }
 
   @override
   String reportsIntervalCountSemantics(int completed) {
-    return '已完成 $completed 个专注时段；未设目标';
+    return '已完成 $completed 轮专注，尚未设置目标';
   }
 
   @override
@@ -1640,10 +1642,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get taskTitleHint => '任务标题';
 
   @override
-  String get taskComment => '评论';
+  String get taskComment => '备注';
 
   @override
-  String get taskCommentHint => '添加评论';
+  String get taskCommentHint => '补充说明、想法或相关链接';
 
   @override
   String get subtasks => '子任务';
@@ -1658,7 +1660,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noSubtasks => '还没有子任务。';
 
   @override
-  String get makeParentTask => '设为父任务';
+  String get makeParentTask => '取消缩进，设为顶级任务';
 
   @override
   String couldNotMoveTask(Object error) {
@@ -1666,13 +1668,13 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get scheduleTitle => '日程';
+  String get scheduleTitle => '安排时间';
 
   @override
   String get allDay => '全天';
 
   @override
-  String get timedBlock => '时间块';
+  String get timedBlock => '设置起止时间';
 
   @override
   String get recurrenceStartDate => '开始日期';
@@ -1681,7 +1683,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get recurrenceEndDate => '结束日期（含当天）';
 
   @override
-  String get recurrenceNoEnd => '不结束';
+  String get recurrenceNoEnd => '不设结束日期';
 
   @override
   String get recurrenceStop => '停止重复';
@@ -1694,7 +1696,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get recurrenceDescription =>
-      '在指定日期范围内重复。未打开应用期间错过的次数不会补齐。停止重复会保留已生成的任务。';
+      '按设定的日期和频率重复。未打开应用时错过的任务不会补建；停止重复后，已生成的任务仍会保留。';
 
   @override
   String get recurrenceTitle => '重复';
@@ -1751,17 +1753,17 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get noDate => '无日期';
+  String get noDate => '未安排日期';
 
   @override
   String get calendarNotLinked => '日历未关联';
 
   @override
-  String get calendarLinked => 'Google Calendar 已关联';
+  String get calendarLinked => '已关联 Google 日历';
 
   @override
   String focusProgress(int completed, int total) {
-    return '$completed/$total 专注';
+    return '已专注 $completed/$total 轮';
   }
 
   @override
@@ -1771,7 +1773,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get focusStarted => '已开始专注';
 
   @override
-  String get taskReopened => '任务已重新打开';
+  String get taskReopened => '已恢复为未完成';
 
   @override
   String get taskCompleted => '任务已完成';
@@ -1783,7 +1785,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get recurringDeleteTitle => '删除重复任务？';
 
   @override
-  String get recurringDeleteMessage => '此任务属于一个重复系列。';
+  String get recurringDeleteMessage => '这是一个重复任务，要删除哪些次数？';
 
   @override
   String get recurringDeleteThis => '仅删除本次任务';
@@ -1798,7 +1800,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get markComplete => '标记为完成';
 
   @override
-  String get focusHistory => '专注历史';
+  String get focusHistory => '专注记录';
 
   @override
   String failedToLoadTask(Object error) {
@@ -1806,7 +1808,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get noFocusIntervals => '还没有专注间隔。';
+  String get noFocusIntervals => '还没有专注记录。';
 
   @override
   String get today => '今天';
@@ -1829,33 +1831,48 @@ class AppLocalizationsZh extends AppLocalizations {
   String get focusTitle => '专注';
 
   @override
+  String get focusRoundsUnit => '轮';
+
+  @override
+  String get focusPresetClassic => '经典番茄钟';
+
+  @override
+  String get focusPresetDeepWork => '深度专注';
+
+  @override
+  String get focusPresetShortSprint => '短时冲刺';
+
+  @override
+  String get focusPresetFlow => '心流';
+
+  @override
   String focusLoadError(Object error) {
-    return '无法加载专注：$error';
+    return '无法加载专注状态：$error';
   }
 
   @override
-  String get focusViewFull => '完整';
+  String get focusViewFull => '详细';
 
   @override
   String get focusViewMinimal => '极简';
 
   @override
-  String get focusSwitchToFullView => '切换到完整模式';
+  String get focusSwitchToFullView => '切换到详细模式';
 
   @override
   String get focusSwitchToMinimalView => '切换到极简模式';
 
   @override
-  String get focusActionFailed => '无法更新 Focus，请重试。';
+  String get focusActionFailed => '操作失败，请重试。';
 
   @override
-  String get noActiveSession => '没有活动会话';
+  String get noActiveSession => '当前没有正在进行的专注';
 
   @override
-  String get focusIdleSubtitle => '启动单独的专注间隔，或从任务启动专注。';
+  String get focusIdleSubtitle => '可以直接开始专注，也可以从任务列表中选择一项任务开始。';
 
   @override
-  String get noPreset => '无预设';
+  String get noPreset => '未选择方案';
 
   @override
   String get preparingFocus => '正在准备专注';
@@ -1867,52 +1884,52 @@ class AppLocalizationsZh extends AppLocalizations {
   String get moreFocusActions => '更多专注操作';
 
   @override
-  String get preset => '预设';
+  String get preset => '专注方案';
 
   @override
-  String get newPreset => '新预设';
+  String get newPreset => '新建方案';
 
   @override
   String get customize => '自定义';
 
   @override
-  String get customizePreset => '自定义预设';
+  String get customizePreset => '编辑专注方案';
 
   @override
-  String get startInterval => '开始间隔';
+  String get startInterval => '开始当前阶段';
 
   @override
-  String get intervalStarted => '间隔已开始';
+  String get intervalStarted => '当前阶段已开始';
 
   @override
-  String get intervalCompleted => '间隔已完成';
+  String get intervalCompleted => '当前阶段已结束';
 
   @override
   String get focusStopped => '专注已停止';
 
   @override
-  String get focusCompletionTitle => '做得漂亮！';
+  String get focusCompletionTitle => '专注完成！';
 
   @override
-  String get focusCompletionLinkedSubtitle => '此任务计划的所有专注时段均已完成。';
+  String get focusCompletionLinkedSubtitle => '这个任务计划的专注轮次已全部完成。';
 
   @override
-  String get focusCompletionStandaloneSubtitle => '你的专注周期已完成。';
+  String get focusCompletionStandaloneSubtitle => '本次计划的专注轮次已全部完成。';
 
   @override
-  String get focusCompletionQuestion => '要完成此任务吗？';
+  String get focusCompletionQuestion => '要将这个任务标记为已完成吗？';
 
   @override
   String get focusCompletionCompleteTask => '完成任务';
 
   @override
-  String get focusCompletionKeepOpen => '保持任务未完成';
+  String get focusCompletionKeepOpen => '暂不完成任务';
 
   @override
   String get focusCompletionDone => '完成';
 
   @override
-  String get focusCompletionNextTask => '下一个计划任务';
+  String get focusCompletionNextTask => '接下来安排的任务';
 
   @override
   String focusCompletionTaskError(Object error) {
@@ -1920,16 +1937,16 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get completeInterval => '完成间隔';
+  String get completeInterval => '结束当前阶段';
 
   @override
-  String get logDistraction => '记录分心';
+  String get logDistraction => '记录一次分心';
 
   @override
-  String get workInterval => '工作间隔';
+  String get workInterval => '专注时段';
 
   @override
-  String get work => '工作';
+  String get work => '专注';
 
   @override
   String get shortBreak => '短休息';
@@ -1942,11 +1959,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String readyLabel(String label) {
-    return '就绪：$label';
+    return '准备开始：$label';
   }
 
   @override
-  String get readyShort => '就绪';
+  String get readyShort => '准备开始';
 
   @override
   String focusTimerTotal(String duration) {
@@ -1955,12 +1972,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String focusSessionProgress(int current, int total) {
-    return '第 $current/$total 节';
+    return '第 $current/$total 轮';
   }
 
   @override
   String focusRhythmPreviewSummary(int count) {
-    return '专注节奏预览，共 $count 步';
+    return '本次安排，共 $count 个阶段';
   }
 
   @override
@@ -1970,7 +1987,7 @@ class AppLocalizationsZh extends AppLocalizations {
     String phase,
     String status,
   ) {
-    return '专注节奏，第 $current/$total 步：$phase，$status';
+    return '第 $current/$total 个阶段：$phase，$status';
   }
 
   @override
@@ -1991,17 +2008,17 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String focusWorkProgress(int completed, int total) {
-    return '$completed/$total 工作';
+    return '已专注 $completed/$total 轮';
   }
 
   @override
   String intervalNumber(int number) {
-    return '间隔 $number';
+    return '第 $number 个阶段';
   }
 
   @override
   String focusIntervalSummary(int completed, int total, int number) {
-    return '$completed/$total 工作 - 间隔 $number';
+    return '已专注 $completed/$total 轮 · 第 $number 个阶段';
   }
 
   @override
@@ -2011,7 +2028,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get resume => '继续';
 
   @override
-  String get presetForNextIntervals => '后续间隔的预设';
+  String get presetForNextIntervals => '后续阶段使用的方案';
 
   @override
   String usePreset(String name) {
@@ -2020,35 +2037,35 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String minutesWork(int minutes) {
-    return '$minutes 分钟工作';
+    return '专注 $minutes 分钟';
   }
 
   @override
   String minutesShort(int minutes) {
-    return '$minutes 分钟短休息';
+    return '短休息 $minutes 分钟';
   }
 
   @override
   String minutesLong(int minutes) {
-    return '$minutes 分钟长休息';
+    return '长休息 $minutes 分钟';
   }
 
   @override
   String longEvery(int count) {
-    return '每 $count 次长休息';
+    return '每 $count 轮专注后长休息';
   }
 
   @override
-  String get autoBreaks => '自动休息';
+  String get autoBreaks => '自动开始休息';
 
   @override
-  String get autoWork => '自动工作';
+  String get autoWork => '自动开始专注';
 
   @override
   String get noPause => '不可暂停';
 
   @override
-  String get focusPauseUnavailable => '此预设不可暂停';
+  String get focusPauseUnavailable => '当前方案不允许暂停';
 
   @override
   String get strict => '严格';
@@ -2060,16 +2077,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get name => '名称';
 
   @override
-  String get workField => '工作';
+  String get workField => '专注时长';
 
   @override
-  String get shortField => '短';
+  String get shortField => '短休息时长';
 
   @override
-  String get longField => '长';
+  String get longField => '长休息时长';
 
   @override
-  String get every => '每';
+  String get every => '长休息间隔';
 
   @override
   String get minutesSuffix => '分钟';
@@ -2081,7 +2098,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get autoStartBreaks => '自动开始休息';
 
   @override
-  String get autoStartWork => '自动开始工作';
+  String get autoStartWork => '自动开始专注';
 
   @override
   String get allowPause => '允许暂停';
@@ -2090,23 +2107,23 @@ class AppLocalizationsZh extends AppLocalizations {
   String get strictMode => '严格模式';
 
   @override
-  String get nameRequired => '名称必填';
+  String get nameRequired => '请输入名称';
 
   @override
-  String get nameMustBeUnique => '名称必须唯一';
+  String get nameMustBeUnique => '这个名称已被使用，请换一个';
 
   @override
-  String get googleCalendarTitle => 'Google Calendar';
+  String get googleCalendarTitle => 'Google 日历';
 
   @override
-  String get googleCalendarConnectedSubtitle => 'Pomodoist 日历的双向同步已启用。';
+  String get googleCalendarConnectedSubtitle => '已开启与 Pomodoist 日历的双向同步。';
 
   @override
   String get googleCalendarDisconnectedSubtitle => '连接 Google 账户以同步计划任务。';
 
   @override
   String get googleCalendarConnectedOnAnotherDeviceSubtitle =>
-      'Google 日历同步正在另一台设备上运行。Pomodoist 数据仍会在此同步。';
+      'Google 日历由另一台设备负责同步，任务数据仍会同步到本机。';
 
   @override
   String get syncNow => '立即同步';
@@ -2122,31 +2139,28 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String failedToLoadIntegration(Object error) {
-    return '无法加载集成：$error';
+    return '无法加载关联服务：$error';
   }
 
   @override
   String googleCalendarFailed(String message) {
-    return 'Google Calendar 失败：$message';
+    return 'Google 日历同步失败：$message';
   }
 
   @override
-  String get googleAuthRequired => '需要 Google Calendar 授权。请重新登录并运行立即同步。';
+  String get googleAuthRequired => 'Google 日历授权已失效，请重新登录后点击“立即同步”。';
 
   @override
-  String get googleSignInNotConfigured =>
-      'Google Sign-In 未配置。请为此 iOS target 设置 GOOGLE_CLIENT_ID 和 GOOGLE_REVERSED_CLIENT_ID。';
+  String get googleSignInNotConfigured => '此版本尚未配置 Google 登录，请联系应用维护者。';
 
   @override
-  String get googleCallbackNotConfigured =>
-      'Google Sign-In 回调未配置。请在 ios/Flutter/GoogleOAuth.xcconfig 中设置 GOOGLE_REVERSED_CLIENT_ID。';
+  String get googleCallbackNotConfigured => '此版本尚未配置 Google 登录回调，请联系应用维护者。';
 
   @override
-  String get googleWebButtonFirst => '在 Web 上，请先点击 Google 登录按钮，然后点击连接。';
+  String get googleWebButtonFirst => '请先点击 Google 登录按钮，登录后再点击“连接”。';
 
   @override
-  String get googleAccessDenied =>
-      'Google 访问被拒绝。请将此 Google 账户添加为 OAuth 测试用户，或发布并验证 OAuth 应用。';
+  String get googleAccessDenied => 'Google 拒绝了授权。如果应用仍在测试中，请联系维护者将你的账户加入测试名单。';
 
   @override
   String get status => '状态';
@@ -2170,7 +2184,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notCreated => '未创建';
 
   @override
-  String get never => '从不';
+  String get never => '尚未同步';
 
   @override
   String durationMinutes(int minutes) {
@@ -2211,13 +2225,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get timelineShowProject => '在时间轴中显示项目';
 
   @override
-  String get timelineHideProject => '隐藏临时项目';
+  String get timelineHideProject => '隐藏临时显示的项目';
 
   @override
-  String get timelineCollapseProject => '折叠项目分支';
+  String get timelineCollapseProject => '收起子项目';
 
   @override
-  String get timelineExpandProject => '展开项目分支';
+  String get timelineExpandProject => '展开子项目';
 
   @override
   String get timelineCurrentTime => '当前时间';
@@ -2245,7 +2259,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get taskDeselectAll => '取消全选';
 
   @override
-  String get taskDue => '截止日期';
+  String get taskDue => '安排日期';
 
   @override
   String get taskProject => '项目';
@@ -2260,7 +2274,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get taskMore => '更多';
 
   @override
-  String get taskSchedule => '安排';
+  String get taskSchedule => '安排时间';
 
   @override
   String get taskMove => '移动';
@@ -2272,10 +2286,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get taskDuplicateTitle => '复制任务';
 
   @override
-  String get taskDuplicateSelectedOnly => '仅所选任务';
+  String get taskDuplicateSelectedOnly => '仅复制所选任务';
 
   @override
-  String get taskDuplicateWithSubtasks => '包含子任务';
+  String get taskDuplicateWithSubtasks => '连同子任务一起复制';
 
   @override
   String get taskWeekend => '本周末';
@@ -2284,13 +2298,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get taskNextWeek => '下周';
 
   @override
-  String get taskEnterDue => '输入截止日期或时间';
+  String get taskEnterDue => '输入日期或时间';
 
   @override
   String get taskInvalidDue => '请输入有效的日期或时间';
 
   @override
-  String get taskClearDue => '清除截止日期';
+  String get taskClearDue => '清除安排日期';
 
   @override
   String get taskDeleteSelectedTitle => '删除所选任务？';
@@ -2302,7 +2316,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get taskCompleteSelected => '完成所选任务';
 
   @override
-  String get taskReopenSelected => '重新打开所选任务';
+  String get taskReopenSelected => '将所选任务恢复为未完成';
 
   @override
   String taskActionFailedCount(int count) {
@@ -2343,7 +2357,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get themeLoadError => '无法加载你的主题。';
 
   @override
-  String get themeColorsSurfaces => '背景与表面';
+  String get themeColorsSurfaces => '背景与面板';
 
   @override
   String get themeColorsText => '文字';
@@ -2370,13 +2384,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get themeColorCanvas => '背景';
 
   @override
-  String get themeColorSurface => '表面';
+  String get themeColorSurface => '面板背景';
 
   @override
-  String get themeColorSurfaceTint => '次要表面';
+  String get themeColorSurfaceTint => '次级面板背景';
 
   @override
-  String get themeColorSurfaceHover => '悬停表面';
+  String get themeColorSurfaceHover => '鼠标悬停背景';
 
   @override
   String get themeColorPrimaryText => '主要文字';
@@ -2385,19 +2399,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get themeColorSecondaryText => '次要文字';
 
   @override
-  String get themeColorMutedText => '弱化文字';
+  String get themeColorMutedText => '辅助文字';
 
   @override
   String get themeColorBorder => '边框';
 
   @override
-  String get themeColorAccent => '强调文字与图标';
+  String get themeColorAccent => '重点文字与图标';
 
   @override
-  String get themeColorAccentFill => '强调填充';
+  String get themeColorAccentFill => '重点按钮背景';
 
   @override
-  String get themeColorAccentTint => '柔和强调填充';
+  String get themeColorAccentTint => '浅色强调背景';
 
   @override
   String get themeColorWarning => '警告';
@@ -2415,21 +2429,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get themeColorOverdue => '逾期';
 
   @override
-  String get themeColorOnAccent => '强调填充上的文字';
+  String get themeColorOnAccent => '重点按钮文字';
 
   @override
-  String get themeColorOnError => '错误填充上的文字';
+  String get themeColorOnError => '错误提示文字';
 
   @override
   String todayTaskSummary(int tasks, int planned, String time) {
-    return '$tasks 个任务 · 计划 $planned 次专注 · 已专注 $time';
+    return '$tasks 个任务 · 计划专注 $planned 轮 · 已专注 $time';
   }
 
   @override
   String get todayFocusingOn => '正在专注';
 
   @override
-  String get openFocus => '打开 Focus';
+  String get openFocus => '进入专注';
 
   @override
   String todayCompletedTasks(int count) {
@@ -2443,13 +2457,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sidebarViews => '视图';
 
   @override
-  String get quickAddResetDetails => '使用默认值';
+  String get quickAddResetDetails => '恢复默认设置';
 
   @override
   String get quickAddChangeTime => '更改时间';
 
   @override
-  String get quickAddProjectNameUnsupported => '无法原样插入此项目名称。';
+  String get quickAddProjectNameUnsupported => '暂时无法将这个项目名称填入输入框。';
 
   @override
   String get themeSepia => '复古棕';
@@ -2473,11 +2487,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get themeBackgroundPhoto => '照片';
 
   @override
-  String get themeBackgroundGlass => 'macOS 玻璃';
+  String get themeBackgroundGlass => 'macOS 毛玻璃';
 
   @override
   String get themeBackgroundGlassHint =>
-      '应用于整个应用和快速添加。模糊效果由 macOS 控制；滑块用于调整调色板色调。';
+      '覆盖主界面和快速添加窗口。模糊程度由 macOS 决定，可用滑块调整背景色的浓淡。';
 
   @override
   String get themeBackgroundGlassUnavailable => '仅在 macOS 应用中可用。此平台将使用纯色背景。';
@@ -2486,16 +2500,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get themeBackgroundTitle => '背景图片';
 
   @override
-  String get themeBackgroundMainOnly => '仅主区域';
+  String get themeBackgroundMainOnly => '仅主界面';
 
   @override
   String get themeBackgroundWholeApp => '整个应用';
 
   @override
-  String get themeBackgroundSeparate => '独立背景';
+  String get themeBackgroundSeparate => '分区域设置';
 
   @override
-  String get themeBackgroundMain => '主区域';
+  String get themeBackgroundMain => '主界面';
 
   @override
   String get themeBackgroundSidebar => '侧边栏';
@@ -2513,7 +2527,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get themeBackgroundRemove => '移除照片';
 
   @override
-  String get themeBackgroundDim => '调暗';
+  String get themeBackgroundDim => '遮罩浓度';
 
   @override
   String get themeBackgroundBlur => '模糊';
@@ -2531,10 +2545,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get themeBackgroundLoading => '正在准备图片…';
 
   @override
-  String get settingsTaskListStyle => '任务行样式';
+  String get settingsTaskListStyle => '任务列表样式';
 
   @override
-  String get settingsTaskListStyleDescription => '选择新布局或保留熟悉的经典任务行。';
+  String get settingsTaskListStyleDescription => '选择任务列表的显示样式。';
 
   @override
   String get settingsTaskListModern => '现代';
@@ -2549,7 +2563,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsTaskRowSpacingCompact => '紧凑';
 
   @override
-  String get settingsTaskRowSpacingComfortable => '舒适';
+  String get settingsTaskRowSpacingComfortable => '适中';
 
   @override
   String get settingsTaskRowSpacingSpacious => '宽松';
@@ -2558,10 +2572,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsSaveError => '无法保存设置。请重试。';
 
   @override
-  String get focusCompletionCompleteAndNext => '完成并开始下一项';
+  String get focusCompletionCompleteAndNext => '完成任务，开始下一项';
 
   @override
-  String get focusCompletionStartNext => '开始下一项任务';
+  String get focusCompletionStartNext => '专注下一项任务';
 
   @override
   String get focusCompletionRetry => '重试';
@@ -2585,16 +2599,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchEmptyDescription => '按标题或描述查找任务，再按项目或状态筛选。';
 
   @override
-  String get searchNoMatchesDescription => '尝试其他关键词或清除筛选。也可以将这段文字创建为新任务。';
+  String get searchNoMatchesDescription => '换个关键词或清除筛选试试，也可以用当前输入新建任务。';
 
   @override
-  String get searchCreateTask => '用此文字创建任务';
+  String get searchCreateTask => '用当前输入新建任务';
 
   @override
   String get taskListLoadError => '无法加载任务。请重试。';
 
   @override
-  String get inboxEmptyTitle => '收件箱已清空';
+  String get inboxEmptyTitle => '收件箱里暂无任务';
 
   @override
   String get inboxEmptyDescription => '在这里记录想法，稍后再决定何时处理。';
@@ -2606,16 +2620,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get todayEmptyDescription => '添加一项任务，开始今天的计划。';
 
   @override
-  String get todayEmptyCompletedTitle => '今日列表已清空';
+  String get todayEmptyCompletedTitle => '今天的任务都完成了';
 
   @override
-  String get todayEmptyCompletedDescription => '已完成的任务保留在下方。准备好后再添加下一项。';
+  String get todayEmptyCompletedDescription => '已完成的任务可以在下方查看。也可以继续添加新任务。';
 
   @override
   String get projectEmptyTitle => '此项目还没有任务';
 
   @override
-  String get projectEmptyDescription => '添加迈向项目目标的第一步。';
+  String get projectEmptyDescription => '添加第一个任务，让项目开始推进。';
 
   @override
   String get commandSearchPlaceholder => '搜索任务、项目和操作';
@@ -2627,7 +2641,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get commandSearchActions => '操作';
 
   @override
-  String get commandSearchDictateTask => '口述任务';
+  String get commandSearchDictateTask => '语音添加任务';
 
   @override
   String get commandSearchAllResults => '查看所有结果';
@@ -2647,7 +2661,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get overdueReview => '处理';
+  String get overdueReview => '查看并处理';
 
   @override
   String get overdueEmpty => '没有逾期任务';
@@ -2657,7 +2671,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String taskFocusSwitchMessage(String task) {
-    return '当前专注将停止。要开始专注于“$task”吗？';
+    return '切换后会停止当前专注。确定开始专注“$task”吗？';
   }
 
   @override

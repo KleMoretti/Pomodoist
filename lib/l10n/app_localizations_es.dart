@@ -1938,6 +1938,21 @@ class AppLocalizationsEs extends AppLocalizations {
   String get focusTitle => 'Enfoque';
 
   @override
+  String get focusRoundsUnit => 'rounds';
+
+  @override
+  String get focusPresetClassic => 'Classic';
+
+  @override
+  String get focusPresetDeepWork => 'Deep Work';
+
+  @override
+  String get focusPresetShortSprint => 'Short Sprint';
+
+  @override
+  String get focusPresetFlow => 'Flow';
+
+  @override
   String focusLoadError(Object error) {
     return 'No se pudo cargar el enfoque: $error';
   }

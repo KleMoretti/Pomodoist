@@ -1915,6 +1915,21 @@ class AppLocalizationsAr extends AppLocalizations {
   String get focusTitle => 'التركيز';
 
   @override
+  String get focusRoundsUnit => 'rounds';
+
+  @override
+  String get focusPresetClassic => 'Classic';
+
+  @override
+  String get focusPresetDeepWork => 'Deep Work';
+
+  @override
+  String get focusPresetShortSprint => 'Short Sprint';
+
+  @override
+  String get focusPresetFlow => 'Flow';
+
+  @override
   String focusLoadError(Object error) {
     return 'تعذر تحميل التركيز: $error';
   }

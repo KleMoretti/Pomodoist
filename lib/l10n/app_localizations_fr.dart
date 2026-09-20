@@ -1941,6 +1941,21 @@ class AppLocalizationsFr extends AppLocalizations {
   String get focusTitle => 'Focus';
 
   @override
+  String get focusRoundsUnit => 'rounds';
+
+  @override
+  String get focusPresetClassic => 'Classic';
+
+  @override
+  String get focusPresetDeepWork => 'Deep Work';
+
+  @override
+  String get focusPresetShortSprint => 'Short Sprint';
+
+  @override
+  String get focusPresetFlow => 'Flow';
+
+  @override
   String focusLoadError(Object error) {
     return 'Impossible de charger la concentration : $error';
   }

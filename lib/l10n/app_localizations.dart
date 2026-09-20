@@ -3396,6 +3396,36 @@ abstract class AppLocalizations {
   /// **'Focus'**
   String get focusTitle;
 
+  /// No description provided for @focusRoundsUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'rounds'**
+  String get focusRoundsUnit;
+
+  /// No description provided for @focusPresetClassic.
+  ///
+  /// In en, this message translates to:
+  /// **'Classic'**
+  String get focusPresetClassic;
+
+  /// No description provided for @focusPresetDeepWork.
+  ///
+  /// In en, this message translates to:
+  /// **'Deep Work'**
+  String get focusPresetDeepWork;
+
+  /// No description provided for @focusPresetShortSprint.
+  ///
+  /// In en, this message translates to:
+  /// **'Short Sprint'**
+  String get focusPresetShortSprint;
+
+  /// No description provided for @focusPresetFlow.
+  ///
+  /// In en, this message translates to:
+  /// **'Flow'**
+  String get focusPresetFlow;
+
   /// No description provided for @focusLoadError.
   ///
   /// In en, this message translates to:

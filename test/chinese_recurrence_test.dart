@@ -7,7 +7,8 @@ import 'package:pomodoist/core/db/app_database.dart';
 import 'package:pomodoist/core/sync/sync_queue_repository.dart';
 import 'package:pomodoist/features/tasks/data/task_repository_impl.dart';
 import 'package:pomodoist/features/tasks/domain/task_models.dart';
-import 'package:pomodoist/features/focus/domain/focus_models.dart' show FocusPresetItem;
+import 'package:pomodoist/features/focus/domain/focus_models.dart'
+    show FocusPresetItem;
 import 'package:pomodoist/features/focus/presentation/focus_preset_labels.dart';
 import 'package:pomodoist/l10n/app_localizations_zh.dart';
 
@@ -16,15 +17,30 @@ void main() {
 
   test('localizing built-in plans never renames user-authored plans', () {
     FocusPresetItem plan(String id, String name) => FocusPresetItem(
-      id: id, userId: 'local', name: name, workSeconds: 1500,
-      shortBreakSeconds: 300, longBreakSeconds: 900, intervalsBeforeLongBreak: 4,
-      autoStartBreaks: false, autoStartWork: false, allowPause: true,
-      strictMode: false, isDefault: false,
-      createdAt: DateTime(2026), updatedAt: DateTime(2026),
+      id: id,
+      userId: 'local',
+      name: name,
+      workSeconds: 1500,
+      shortBreakSeconds: 300,
+      longBreakSeconds: 900,
+      intervalsBeforeLongBreak: 4,
+      autoStartBreaks: false,
+      autoStartWork: false,
+      allowPause: true,
+      strictMode: false,
+      isDefault: false,
+      createdAt: DateTime(2026),
+      updatedAt: DateTime(2026),
     );
     final chinese = AppLocalizationsZh();
-    expect(focusPresetLabel(chinese, plan(defaultPresetId, 'Classic')), '经典番茄钟');
-    expect(focusPresetLabel(chinese, plan(defaultPresetId, 'My plan')), 'My plan');
+    expect(
+      focusPresetLabel(chinese, plan(defaultPresetId, 'Classic')),
+      '经典番茄钟',
+    );
+    expect(
+      focusPresetLabel(chinese, plan(defaultPresetId, 'My plan')),
+      'My plan',
+    );
     expect(focusPresetLabel(chinese, plan('user-plan', 'Classic')), 'Classic');
   });
 

@@ -623,7 +623,8 @@ class _PresetFormDialogState extends State<_PresetFormDialog> {
     Navigator.of(context).pop(
       _PresetDialogResult.save(
         _PresetFormData(
-          name: widget.preset != null &&
+          name:
+              widget.preset != null &&
                   _nameController.text.trim() == _initialDisplayName
               ? widget.preset!.name
               : _nameController.text.trim(),
