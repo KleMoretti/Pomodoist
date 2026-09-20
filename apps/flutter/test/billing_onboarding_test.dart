@@ -1,6 +1,6 @@
 import 'package:pomodoist/domain/models/settings/app_language.dart';
 import 'package:pomodoist/ui/core/localization/app_locale.dart';
-import 'package:pomodoist/data/repositories/focus/focus_preferences.dart';
+import 'package:pomodoist/data/repositories/focus/focus_preferences_repository.dart';
 import 'package:shadcn_ui/shadcn_ui.dart' show ShadButton;
 import 'support/test_app.dart';
 import 'dart:async';
@@ -23,6 +23,11 @@ import 'package:pomodoist/config/providers.dart';
 import 'package:pomodoist/ui/core/themes/app_theme.dart';
 import 'package:pomodoist/utils/clock.dart';
 import 'package:pomodoist/config/billing_dependencies.dart';
+import 'package:pomodoist/config/billing_store_dependencies.dart';
+import 'package:pomodoist/data/services/billing/billing_store.dart';
+import 'package:pomodoist/domain/models/billing/billing_models.dart';
+import 'package:pomodoist/ui/billing/view_models/billing_view_model.dart';
+import 'package:pomodoist/ui/billing/widgets/billing_paywall.dart';
 import 'package:pomodoist/ui/billing/widgets/purchase_success_screen.dart';
 import 'package:pomodoist/domain/models/focus/focus_view_mode.dart';
 import 'package:pomodoist/ui/onboarding/widgets/onboarding_gate.dart';
@@ -187,6 +192,8 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
+
+      container.listen(billingViewModelProvider, (_, _) {});
 
       container.read(billingViewModelProvider);
       await _settle();
@@ -389,7 +396,7 @@ void main() {
           billingSignedInProvider.overrideWithValue(true),
           billingStripeGatewayProvider.overrideWithValue(
             BillingStripeGateway(
-              loadCatalog: () async => const StripeBillingCatalog(
+              loadCatalog: () async => StripeBillingCatalog(
                 enabled: false,
                 introEligible: false,
                 launchOfferEligible: false,
@@ -433,7 +440,7 @@ void main() {
           billingSignedInProvider.overrideWithValue(true),
           billingStripeGatewayProvider.overrideWithValue(
             BillingStripeGateway(
-              loadCatalog: () async => const StripeBillingCatalog(
+              loadCatalog: () async => StripeBillingCatalog(
                 enabled: true,
                 introEligible: false,
                 launchOfferEligible: false,
@@ -515,6 +522,7 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
+    container.listen(billingViewModelProvider, (_, _) {});
     container.read(billingViewModelProvider);
     await _settle();
 
@@ -545,6 +553,8 @@ void main() {
       );
       addTearDown(container.dispose);
 
+      container.listen(billingViewModelProvider, (_, _) {});
+
       container.read(billingViewModelProvider);
       await _settle();
 
@@ -559,7 +569,7 @@ void main() {
   test('verified StoreKit tier wins over account metadata', () {
     expect(
       billingAccessTier(
-        const BillingState(
+        BillingState(
           loading: false,
           activeStoreKitProductIds: {pomodoistAnnualProductId},
           activeProductId: pomodoistAnnualProductId,
@@ -594,6 +604,7 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
+      container.listen(billingViewModelProvider, (_, _) {});
       container.read(billingViewModelProvider);
       await _settle();
 
@@ -672,6 +683,8 @@ void main() {
     );
     addTearDown(container.dispose);
 
+    container.listen(billingViewModelProvider, (_, _) {});
+
     container.read(billingViewModelProvider);
     await _settle();
 
@@ -693,6 +706,7 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
+    container.listen(billingViewModelProvider, (_, _) {});
     container.read(billingViewModelProvider);
     await _settle();
     expect(container.read(billingViewModelProvider).loading, isTrue);
@@ -743,6 +757,7 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
+      container.listen(billingViewModelProvider, (_, _) {});
       container.read(billingViewModelProvider);
       await _settle();
       store.catalogError = null;
@@ -774,6 +789,7 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
+      container.listen(billingViewModelProvider, (_, _) {});
       container.read(billingViewModelProvider);
       await _settle();
 
@@ -803,6 +819,7 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
+      container.listen(billingViewModelProvider, (_, _) {});
       container.read(billingViewModelProvider);
       await _settle();
 
@@ -834,6 +851,7 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
+    container.listen(billingViewModelProvider, (_, _) {});
     container.read(billingViewModelProvider);
     await _settle();
 
@@ -871,6 +889,7 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
+      container.listen(billingViewModelProvider, (_, _) {});
       container.read(billingViewModelProvider);
       await _waitFor(
         () =>
@@ -941,6 +960,7 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
+    container.listen(billingViewModelProvider, (_, _) {});
     container.read(billingViewModelProvider);
     await _settle();
 
@@ -967,6 +987,7 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
+      container.listen(billingViewModelProvider, (_, _) {});
       container.read(billingViewModelProvider);
       await _settle();
 
@@ -1015,6 +1036,7 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
+      container.listen(billingViewModelProvider, (_, _) {});
       container.read(billingViewModelProvider);
       await _settle();
 
@@ -1072,6 +1094,8 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
+
+      container.listen(billingViewModelProvider, (_, _) {});
 
       container.read(billingViewModelProvider);
       await _settle();
@@ -1229,6 +1253,7 @@ void main() {
             _FakeBillingStore(eligibleProductIds: const {}),
           ),
           applePurchasesSupportedProvider.overrideWithValue(true),
+          billingChannelProvider.overrideWithValue(BillingChannel.stripe),
         ],
         child: MaterialApp(
           builder: testAppBuilder,
@@ -1373,6 +1398,8 @@ void main() {
     );
     addTearDown(container.dispose);
 
+    container.listen(billingViewModelProvider, (_, _) {});
+
     container.read(billingViewModelProvider);
     await _settle();
     expect(container.read(billingViewModelProvider).storeAvailable, isTrue);
@@ -1418,6 +1445,8 @@ void main() {
         overrides: [applePurchasesSupportedProvider.overrideWithValue(true)],
       );
       addTearDown(container.dispose);
+
+      container.listen(billingViewModelProvider, (_, _) {});
 
       container.read(billingViewModelProvider);
       await _settle();
@@ -1476,6 +1505,8 @@ void main() {
       );
       addTearDown(container.dispose);
 
+      container.listen(billingViewModelProvider, (_, _) {});
+
       container.read(billingViewModelProvider);
       await _settle();
       await container
@@ -1502,6 +1533,8 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
+
+    container.listen(billingViewModelProvider, (_, _) {});
 
     container.read(billingViewModelProvider);
     await _settle();
@@ -1532,6 +1565,8 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
+
+      container.listen(billingViewModelProvider, (_, _) {});
 
       container.read(billingViewModelProvider);
       await _settle();
@@ -1605,6 +1640,7 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
+      container.listen(billingViewModelProvider, (_, _) {});
       container.read(billingViewModelProvider);
       await container.read(billingViewModelProvider.notifier).reload();
       expect(container.read(billingViewModelProvider).canPurchase, isFalse);
@@ -1652,6 +1688,7 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
+      container.listen(billingViewModelProvider, (_, _) {});
       container.read(billingViewModelProvider);
       await container.read(billingViewModelProvider.notifier).reload();
       expect(store.catalogRequests, 1);
@@ -1685,6 +1722,8 @@ void main() {
     );
     addTearDown(container.dispose);
 
+    container.listen(billingViewModelProvider, (_, _) {});
+
     container.read(billingViewModelProvider);
     await _waitFor(
       () => !container.read(billingViewModelProvider).loading,
@@ -1709,6 +1748,7 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
+    container.listen(billingViewModelProvider, (_, _) {});
     container.read(billingViewModelProvider);
     await _settle();
 
@@ -1728,6 +1768,7 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
+    container.listen(billingViewModelProvider, (_, _) {});
     container.read(billingViewModelProvider);
     await _settle();
 
@@ -1750,6 +1791,7 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
+    container.listen(billingViewModelProvider, (_, _) {});
     container.read(billingViewModelProvider);
     await _settle();
 
@@ -1774,6 +1816,7 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
+    container.listen(billingViewModelProvider, (_, _) {});
     container.read(billingViewModelProvider);
     await _settle();
 
@@ -1796,6 +1839,7 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
+    container.listen(billingViewModelProvider, (_, _) {});
     container.read(billingViewModelProvider);
     await _settle();
 
@@ -1820,6 +1864,7 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
+    container.listen(billingViewModelProvider, (_, _) {});
     container.read(billingViewModelProvider);
     await _settle();
 
@@ -1847,6 +1892,7 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
+    container.listen(billingViewModelProvider, (_, _) {});
     container.read(billingViewModelProvider);
     await _settle();
 
@@ -1878,6 +1924,7 @@ void main() {
         overrides: [
           billingStoreProvider.overrideWithValue(_FakeBillingStore()),
           applePurchasesSupportedProvider.overrideWithValue(true),
+          billingChannelProvider.overrideWithValue(BillingChannel.stripe),
           clockProvider.overrideWithValue(clock),
         ],
         child: const _OnboardingHarness(),
@@ -2110,6 +2157,21 @@ void main() {
         overrides: [
           billingStoreProvider.overrideWithValue(_FakeBillingStore()),
           applePurchasesSupportedProvider.overrideWithValue(true),
+          billingChannelProvider.overrideWithValue(BillingChannel.stripe),
+          billingSignedInProvider.overrideWithValue(true),
+          billingStripeGatewayProvider.overrideWithValue(
+            BillingStripeGateway(
+              loadCatalog: () async => StripeBillingCatalog(
+                enabled: true,
+                introEligible: true,
+                prices: {pomodoistAnnualProductId: r'$39'},
+                launchOfferEligible: false,
+                launchOfferEndsAt: null,
+              ),
+              createCheckout: (_, _) => throw UnimplementedError(),
+              openCheckout: (_) async => true,
+            ),
+          ),
           clockProvider.overrideWithValue(
             FixedClock(DateTime.utc(2026, 1, 2, 11)),
           ),
@@ -2270,7 +2332,7 @@ void main() {
           ),
           billingStripeGatewayProvider.overrideWithValue(
             BillingStripeGateway(
-              loadCatalog: () async => const StripeBillingCatalog(
+              loadCatalog: () async => StripeBillingCatalog(
                 enabled: true,
                 introEligible: false,
                 launchOfferEligible: false,
@@ -2340,7 +2402,7 @@ void main() {
       find.byKey(const ValueKey('billing-plan-pomodoist.pro.monthly')),
       findsOneWidget,
     );
-    expect(find.text(r'$5.99/month'), findsOneWidget);
+    expect(find.text(r'$4.99/month'), findsOneWidget);
     expect(
       tester
           .widget<ShadButton>(

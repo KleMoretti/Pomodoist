@@ -2,15 +2,15 @@ import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:pomodoist/app/app_language.dart';
-import 'package:pomodoist/core/db/app_database.dart';
-import 'package:pomodoist/core/sync/sync_queue_repository.dart';
-import 'package:pomodoist/features/tasks/data/task_repository_impl.dart';
-import 'package:pomodoist/features/tasks/domain/task_models.dart';
-import 'package:pomodoist/features/focus/domain/focus_models.dart'
+import 'package:pomodoist/config/app_language.dart';
+import 'package:pomodoist/data/services/local/database/app_database.dart';
+import 'package:pomodoist/data/services/local/outbox_service.dart';
+import 'package:pomodoist/data/repositories/tasks/task_repository_impl.dart';
+import 'package:pomodoist/domain/models/tasks/task_models.dart';
+import 'package:pomodoist/domain/models/focus/focus_models.dart'
     show FocusPresetItem;
-import 'package:pomodoist/features/focus/presentation/focus_preset_labels.dart';
-import 'package:pomodoist/l10n/app_localizations_zh.dart';
+import 'package:pomodoist/ui/focus/widgets/focus_preset_labels.dart';
+import 'package:pomodoist/ui/core/localization/app_localizations_zh.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -50,16 +50,14 @@ void main() {
       SharedPreferences.setMockInitialValues({appLanguagePreferenceKey: 'en'});
       final first = ProviderContainer();
       expect(first.read(appLanguageProvider), AppLanguage.zh);
-      await first.read(appLanguageProvider.notifier).ready;
+      await first.read(languageRepositoryProvider).ready;
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getString(appLanguagePreferenceKey), 'zh');
-      await first
-          .read(appLanguageProvider.notifier)
-          .setLanguage(AppLanguage.en);
+      await first.read(languageRepositoryProvider).setLanguage(AppLanguage.en);
       first.dispose();
       final restarted = ProviderContainer();
       addTearDown(restarted.dispose);
-      await restarted.read(appLanguageProvider.notifier).ready;
+      await restarted.read(languageRepositoryProvider).ready;
       expect(restarted.read(appLanguageProvider), AppLanguage.en);
     },
   );
@@ -68,9 +66,9 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final container = ProviderContainer();
     addTearDown(container.dispose);
-    final controller = container.read(appLanguageProvider.notifier);
-    await controller.setLanguage(AppLanguage.system);
-    await controller.ready;
+    final repository = container.read(languageRepositoryProvider);
+    await repository.setLanguage(AppLanguage.system);
+    await repository.ready;
     expect(container.read(appLanguageProvider), AppLanguage.system);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString(appLanguagePreferenceKey), 'system');
@@ -120,8 +118,8 @@ void main() {
     final db = AppDatabase(NativeDatabase.memory());
     addTearDown(db.close);
     await db.ensureSeedData();
-    final repo = DriftTaskRepository(db, DriftSyncQueueRepository(db));
-    final id = await repo.createTask(
+    final repo = DriftTaskRepository(db, DriftOutboxService(db));
+    final id = (await repo.createTask(
       CreateTaskInput(
         content: 'Daily',
         schedule: TaskSchedule.allDay(
@@ -135,13 +133,16 @@ void main() {
           ),
         ),
       ),
-    );
-    await repo.materializeDueRecurringTasks(now: DateTime(2026, 9, 20, 12));
-    await repo.materializeDueRecurringTasks(now: DateTime(2026, 9, 20, 12));
+    )).getOrThrow();
+    (await repo.materializeDueRecurringTasks(now: DateTime(2026, 9, 20, 12)))
+        .getOrThrow();
+    (await repo.materializeDueRecurringTasks(now: DateTime(2026, 9, 20, 12)))
+        .getOrThrow();
     expect((await repo.watchTasks(const TaskQuery.all()).first), hasLength(2));
     final current = (await repo.watchRecurrenceTask(id).first)!;
     expect(current.schedule!.displayDate, DateTime(2026, 9, 21));
-    await repo.materializeDueRecurringTasks(now: DateTime(2026, 9, 22));
+    (await repo.materializeDueRecurringTasks(now: DateTime(2026, 9, 22)))
+        .getOrThrow();
     final tasks = await repo.watchTasks(const TaskQuery.all()).first;
     expect(tasks, hasLength(2));
     expect(tasks.every((task) => task.schedule!.recurrence == null), isTrue);
@@ -151,8 +152,8 @@ void main() {
     final db = AppDatabase(NativeDatabase.memory());
     addTearDown(db.close);
     await db.ensureSeedData();
-    final repo = DriftTaskRepository(db, DriftSyncQueueRepository(db));
-    final id = await repo.createTask(
+    final repo = DriftTaskRepository(db, DriftOutboxService(db));
+    final id = (await repo.createTask(
       CreateTaskInput(
         content: 'Daily',
         schedule: TaskSchedule.allDay(
@@ -164,10 +165,12 @@ void main() {
           ),
         ),
       ),
-    );
-    await repo.materializeDueRecurringTasks(now: DateTime(2026, 9, 20, 12));
+    )).getOrThrow();
+    (await repo.materializeDueRecurringTasks(now: DateTime(2026, 9, 20, 12)))
+        .getOrThrow();
     await repo.updateTaskRecurrence(id, recurrence: null);
-    await repo.materializeDueRecurringTasks(now: DateTime(2026, 9, 23));
+    (await repo.materializeDueRecurringTasks(now: DateTime(2026, 9, 23)))
+        .getOrThrow();
     final tasks = await repo.watchTasks(const TaskQuery.all()).first;
     expect(tasks, hasLength(2));
     expect(tasks.every((task) => task.schedule!.recurrence == null), isTrue);

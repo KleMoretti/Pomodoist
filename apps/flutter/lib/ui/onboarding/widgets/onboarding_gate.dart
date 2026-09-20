@@ -23,7 +23,7 @@ class OnboardingGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!personalEdition) ref.watch(billingViewModelProvider);
+    if (!personalEdition) ref.watch(billingAccessProvider);
     final state = ref.watch(onboardingViewModelProvider);
     return Stack(
       children: [
@@ -356,6 +356,7 @@ class _LaunchOfferMiniWindowState
   Widget build(BuildContext context) {
     final onboarding = ref.watch(onboardingViewModelProvider);
     final billing = ref.watch(billingViewModelProvider);
+    final access = ref.watch(billingAccessProvider).value;
     final now = ref.read(onboardingViewModelProvider.notifier).now();
     final serverOwned =
         ref.watch(billingChannelProvider) == BillingChannel.stripe &&
@@ -378,7 +379,7 @@ class _LaunchOfferMiniWindowState
     if (_dismissedCycle == cycle ||
         remaining == Duration.zero ||
         (serverOwned && !billing.stripeLaunchOfferEligible) ||
-        billing.hasActiveEntitlement) {
+        (access?.hasActiveEntitlement ?? false)) {
       return const SizedBox.shrink();
     }
     final l10n = context.l10n;
