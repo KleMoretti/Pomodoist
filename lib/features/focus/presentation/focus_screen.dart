@@ -13,6 +13,7 @@ import '../../../app/widgets/action_feedback.dart';
 import '../../../app/widgets/resizable_dialog.dart';
 import '../domain/focus_models.dart';
 import 'focus_stage.dart';
+import 'focus_start_dialog.dart';
 import 'focus_preset_labels.dart';
 import 'focus_view_mode.dart';
 
@@ -88,6 +89,13 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const _FocusHeader(),
+                const SizedBox(height: 12),
+                Align(alignment: Alignment.centerLeft, child: TextButton.icon(
+                  onPressed: loading || loadError != null || effectivePreset == null
+                    ? null : () => _startFocus(effectivePreset),
+                  icon: const Icon(LucideIcons.listTodo, size: 18),
+                  label: Text(run == null ? context.l10n.focusChooseTaskAndRounds : context.l10n.focusSwitchTask),
+                )),
                 SizedBox(height: desktop ? 24 : 20),
                 loadError != null
                     ? _FocusLoadError(error: loadError)
@@ -106,7 +114,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
                         onStart: effectivePreset == null
                             ? null
                             : () =>
-                                  _startFocus(focusRepository, effectivePreset),
+                                  _startFocus(effectivePreset),
                         onCustomize: effectivePreset == null
                             ? null
                             : () => _showPresetDialog(effectivePreset, presets),
@@ -231,36 +239,8 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
     }
   }
 
-  Future<void> _startFocus(
-    FocusRepository repository,
-    FocusPresetItem preset,
-  ) async {
-    unawaited(
-      ref.read(lastFocusPresetIdProvider.notifier).setPresetId(preset.id),
-    );
-    try {
-      await repository.startRun(StartFocusRunInput(presetId: preset.id));
-    } catch (_) {
-      if (mounted) {
-        showActionFeedback(
-          context,
-          message: context.l10n.focusActionFailed,
-          icon: LucideIcons.circleAlert,
-          sound: ActionFeedbackSound.none,
-          haptic: AppHapticCue.none,
-        );
-      }
-      return;
-    }
-    if (!mounted) {
-      return;
-    }
-    showActionFeedback(
-      context,
-      message: context.l10n.focusStarted,
-      icon: LucideIcons.circlePlay,
-      haptic: AppHapticCue.none,
-    );
+  Future<void> _startFocus(FocusPresetItem preset) async {
+    await showFocusStartDialog(context, ref, preset: preset);
   }
 
   void _selectPreset(String id) {

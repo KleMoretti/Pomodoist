@@ -27,7 +27,7 @@ import '../../../../app/task_time.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../app/theme/theme_background.dart';
 import '../../../../app/widgets/action_feedback.dart';
-import '../../../focus/domain/focus_models.dart';
+import '../../../focus/presentation/focus_start_dialog.dart';
 import '../../domain/project_colors.dart';
 import '../../domain/task_models.dart';
 import '../widgets/project_color_picker.dart';
@@ -274,15 +274,8 @@ class _KanbanScreenState extends ConsumerState<KanbanScreen> {
       return;
     }
     try {
-      await ref
-          .read(focusRepositoryProvider)
-          .startRun(
-            StartFocusRunInput(
-              taskId: card.task.id,
-              projectId: card.project.id,
-              targetWorkIntervals: card.task.estimatedFocusIntervals,
-            ),
-          );
+      final opened = await showFocusStartDialog(context, ref, task: card.task);
+      if (!opened) return;
       if (mounted) {
         _announce(
           context.l10n.kanbanFocusStartedAnnouncement(card.task.content),

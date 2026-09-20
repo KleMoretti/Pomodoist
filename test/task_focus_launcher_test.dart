@@ -6,6 +6,30 @@ import 'package:pomodoist/features/tasks/domain/task_models.dart';
 import 'package:pomodoist/features/tasks/presentation/task_focus_launcher.dart';
 
 void main() {
+  test('explicit rounds override the task estimate without changing the task or plan', () async {
+    final repository = _FocusRepository();
+    final launcher = TaskFocusLauncher(repository);
+    await launcher.open(_task, preset: _preset,
+      targetWorkIntervals: 7, confirmSwitch: () async => true);
+    expect(repository.starts.single.targetWorkIntervals, 7);
+    expect(repository.starts.single.taskId, _task.id);
+    expect(_task.estimatedFocusIntervals, 3);
+    expect(_preset.intervalsBeforeLongBreak, 4);
+  });
+
+  test('unlinked focus uses explicit rounds and rejects invalid input before switching', () async {
+    final repository = _FocusRepository();
+    final launcher = TaskFocusLauncher(repository);
+    await launcher.open(null, preset: _preset,
+      targetWorkIntervals: 2, confirmSwitch: () async => true);
+    expect(repository.starts.single.taskId, isNull);
+    expect(repository.starts.single.targetWorkIntervals, 2);
+    await expectLater(launcher.open(_task, preset: _preset,
+      targetWorkIntervals: 0, confirmSwitch: () async => fail('Invalid input cannot switch a session')),
+      throwsArgumentError);
+    expect(repository.starts.length, 1);
+  });
+
   test(
     'starts with the selected preset and task estimate when no session exists',
     () async {

@@ -64,7 +64,7 @@ jobs:
         run: |
           flutter gen-l10n
           if ($LASTEXITCODE -ne 0) { throw 'Localization generation failed.' }
-          dart format lib/app/app_language.dart lib/app/app_l10n.dart lib/features/tasks/domain/task_models.dart lib/features/tasks/data/task_repository_impl.dart lib/features/tasks/presentation/task_detail_screen.dart lib/features/tasks/presentation/task_recurrence_button.dart test/chinese_recurrence_test.dart test/core_features_test.dart lib/features/focus/presentation/focus_preset_labels.dart lib/features/focus/presentation/focus_stage.dart lib/features/focus/presentation/focus_active_controls.dart lib/features/focus/presentation/focus_screen.dart
+          dart format lib/app/app_language.dart lib/app/app_l10n.dart lib/features/tasks/domain/task_models.dart lib/features/tasks/data/task_repository_impl.dart lib/features/tasks/presentation/task_detail_screen.dart lib/features/tasks/presentation/task_recurrence_button.dart test/chinese_recurrence_test.dart test/core_features_test.dart lib/features/focus/presentation/focus_preset_labels.dart lib/features/focus/presentation/focus_stage.dart lib/features/focus/presentation/focus_active_controls.dart lib/features/focus/presentation/focus_screen.dart lib/main.dart lib/app/personal_edition.dart lib/app/theme/app_theme.dart lib/features/billing/billing.dart lib/features/onboarding/onboarding_gate.dart lib/features/settings/presentation/settings_screen.dart lib/features/tasks/presentation/task_focus_launcher.dart lib/features/tasks/presentation/widgets/task_list_item.dart lib/features/tasks/presentation/kanban/kanban_screen.dart lib/features/focus/presentation/focus_start_dialog.dart test/personal_edition_test.dart test/task_focus_launcher_test.dart
           if ($LASTEXITCODE -ne 0) { throw 'Formatting failed.' }
       - name: Save generated sources for SDK-free development
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -84,11 +84,23 @@ jobs:
             lib/features/focus/presentation/focus_screen.dart
             test/chinese_recurrence_test.dart
             test/core_features_test.dart
+            lib/main.dart
+            lib/app/personal_edition.dart
+            lib/app/theme/app_theme.dart
+            lib/features/billing/billing.dart
+            lib/features/onboarding/onboarding_gate.dart
+            lib/features/settings/presentation/settings_screen.dart
+            lib/features/tasks/presentation/task_focus_launcher.dart
+            lib/features/tasks/presentation/widgets/task_list_item.dart
+            lib/features/tasks/presentation/kanban/kanban_screen.dart
+            lib/features/focus/presentation/focus_start_dialog.dart
+            test/personal_edition_test.dart
+            test/task_focus_launcher_test.dart
       - name: Analyze and run minimal feature tests
         run: |
           flutter analyze --no-pub
           if ($LASTEXITCODE -ne 0) { throw 'Static analysis failed.' }
-          flutter test --no-pub test/chinese_recurrence_test.dart
+          flutter test --no-pub test/chinese_recurrence_test.dart test/personal_edition_test.dart test/task_focus_launcher_test.dart
           if ($LASTEXITCODE -ne 0) { throw 'Feature tests failed.' }
       - name: Test installer packaging boundary
         run: >-
@@ -188,7 +200,7 @@ jobs:
           EOF
           )
           if [[ "$SOURCE_BRANCH" == chinese ]]; then
-            notes+=$'\n\nLocal-mode feature preview: Revised Chinese interface wording, Chinese focus plan names, and repeat date ranges. Development and releases now use the chinese branch; main remains reserved for upstream synchronization. Cloud sign-in and sync are not configured in this package.\n\nManual checks: confirm Chinese after upgrading; change the language and restart; save and reopen a daily/weekly/monthly repeat with an end date; stop repeating and verify existing tasks remain.'
+            notes+=$'\n\nLocal-mode feature preview: No local subscription requirements or purchase offers; bundled Noto Sans SC typography; shared focus setup with task selection and independent round targets. Includes revised Chinese wording and repeat date ranges. Development and releases now use the chinese branch; main remains reserved for upstream synchronization. Cloud sign-in and sync are not configured in this package.\n\nManual checks: confirm readable Chinese in both windows; verify onboarding/settings show no paid offers; start a Today task with a custom round count; select another task from Focus; cancel switching and confirm the running timer is preserved. Repeat ranges and saved language choice should still work.'
           fi
           printf '%s\n' "$notes" > "$RUNNER_TEMP/preview-notes.md"
           gh release create "$tag" \

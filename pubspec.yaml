@@ -114,7 +114,12 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  fonts:
+    - family: NotoSansSC
+      fonts:
+        - asset: assets/fonts/NotoSansSC.ttf
   assets:
+    - assets/fonts/OFL.txt
     - web/sqlite3.wasm
     - web/drift_worker.js
     - assets/sounds/focus_start.wav

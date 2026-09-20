@@ -31,6 +31,7 @@ import '../../voice/data/voice_transcription_mode.dart';
 import 'settings_components.dart';
 import 'settings_navigation.dart';
 import 'settings_subscription.dart';
+import '../../../app/personal_edition.dart';
 import 'account_sign_out_button.dart';
 import 'app_info_card.dart';
 import 'csv_task_import_card.dart';
@@ -1456,8 +1457,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               onRetry: () => ref.invalidate(accountOverviewProvider),
             ),
         ],
-        const SizedBox(height: 24),
-        const SettingsSubscription(),
+        if (!personalEdition) ...[
+          const SizedBox(height: 24),
+          const SettingsSubscription(),
+        ],
         if (signedIn) ...[
           const SizedBox(height: 24),
           Divider(height: 1, thickness: 1, color: context.appColors.border),

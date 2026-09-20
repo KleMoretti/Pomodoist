@@ -69,8 +69,10 @@ including during theme transitions.
   colors have dedicated roles and do not follow an accent change. P1 priority
   indicators share the urgent `overdue` color, retaining their red meaning in
   the built-in blue and green themes.
-- Use Geist for the interface and GeistMono with tabular figures for timers and
-  numeric metrics. Both fonts are bundled locally in `shadcn_ui`.
+- Use the locally bundled Noto Sans SC variable font for the interface, including
+  Material and Shadcn controls in both windows. Use normal letter spacing for
+  Chinese headings. Keep GeistMono from `shadcn_ui` for timers and numeric metrics,
+  with Noto Sans SC as its Chinese fallback. Font licenses ship with the app.
 - Use the existing `textTheme` roles instead of a separate size scale for each
   screen. Build hierarchy through weight, color, and spacing.
 - Use Lucide icons exported by `shadcn_ui` for the shared interface. Preserve
@@ -655,3 +657,12 @@ The user performs visual and manual checks. Widget, golden, integration, and
 end-to-end tests, builds, app launches, browser checks, emulators, and profiling
 are outside the agent's default styling scope unless the user requests them
 separately. Passing analysis or unit tests does not establish visual quality.
+
+### Personal edition focus setup
+
+Task focus buttons and the Focus screen share a start dialog. It selects a plan
+and 1–999 work rounds; the Focus screen also offers a searchable unfinished-task
+picker and an unlinked session. The round target is separate from the plan's
+long-break cadence and never edits task estimates. Cancel preserves the current
+session. Opening the task already in focus preserves its timer; switching tasks
+requires confirmation. Failed starts retain the dialog input.

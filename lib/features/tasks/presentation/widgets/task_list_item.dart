@@ -22,7 +22,7 @@ import '../../domain/task_focus_estimate.dart';
 import '../../domain/task_models.dart';
 import '../task_completion_feedback.dart';
 import '../task_scheduling.dart';
-import '../task_focus_launcher.dart';
+import '../../../focus/presentation/focus_start_dialog.dart';
 import 'task_swipe_actions.dart';
 import 'project_color_picker.dart';
 import 'task_motion.dart';
@@ -888,52 +888,8 @@ class TaskListItem extends ConsumerWidget {
   }
 
   Future<void> _startFocus(BuildContext context, WidgetRef ref) async {
-    final launcher = ref.read(taskFocusLauncherProvider);
-    final presets = ref.read(focusPresetsProvider.future);
-    final presetId = ref.read(lastFocusPresetIdProvider);
-    try {
-      final preset = selectedFocusPresetOrDefault(await presets, presetId);
-      if (!context.mounted) return;
-      final opened = await launcher.open(
-        task,
-        preset: preset,
-        confirmSwitch: () async {
-          if (!context.mounted) return false;
-          return await showDialog<bool>(
-                    context: context,
-                    animationStyle: AnimationStyle(
-                      duration: AppMotion.duration(context, AppMotion.popup),
-                      reverseDuration: AppMotion.duration(
-                        context,
-                        AppMotion.popup,
-                      ),
-                      curve: AppMotion.curve,
-                    ),
-                    builder: (dialogContext) => AlertDialog(
-                      title: Text(context.l10n.taskFocusSwitchTitle),
-                      content: Text(
-                        context.l10n.taskFocusSwitchMessage(task.content),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(dialogContext, false),
-                          child: Text(context.l10n.commonCancel),
-                        ),
-                        FilledButton(
-                          onPressed: () => Navigator.pop(dialogContext, true),
-                          child: Text(context.l10n.taskFocusSwitchConfirm),
-                        ),
-                      ],
-                    ),
-                  ) ==
-                  true &&
-              context.mounted;
-        },
-      );
-      if (opened && context.mounted) context.go('/focus');
-    } catch (_) {
-      if (context.mounted) _showActionError(context);
-    }
+    final opened = await showFocusStartDialog(context, ref, task: task);
+    if (opened && context.mounted) context.go('/focus');
   }
 
   void _showActionError(BuildContext context) {

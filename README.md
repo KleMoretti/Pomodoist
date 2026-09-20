@@ -9,8 +9,16 @@ Download this fork's Windows installers from
 [KleMoretti/Pomodoist Releases](https://github.com/KleMoretti/Pomodoist/releases).
 To publish, run **Chinese Windows preview** on `chinese`. These unsigned preview
 builds currently use local mode; cloud sign-in and sync are not configured.
-Review the Chinese UI manually after installation. Original project information
-and attribution follow below.
+Local features in this personal edition require no subscription. Purchase offers,
+subscription settings, and store initialization are disabled. This does not grant
+paid access to the upstream hosted services. The interface includes a bundled
+Noto Sans SC font. Task focus buttons and the Focus screen share a setup dialog
+for choosing a task, plan, and session round target.
+
+Manual acceptance: check Chinese text in both windows; confirm there are no
+purchase offers in onboarding or settings; start a task from Today with a custom
+round count; choose a different task from Focus; cancel a switch and verify the
+current timer survives. Original project information and attribution follow below.
 
 <p align="center">
   <img src=".github/assets/github-banner.webp" alt="Pomodoist task manager, focus timer, and productivity reports" width="100%">

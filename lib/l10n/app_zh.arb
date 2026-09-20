@@ -3,7 +3,7 @@
   "settingsSectionAppearance": "外观",
   "settingsSectionTasksFocus": "任务与专注",
   "settingsSectionIntegrations": "服务与数据",
-  "settingsSectionAccount": "账户与 Pro",
+  "settingsSectionAccount": "账户",
   "settingsThemeColorsTab": "颜色",
   "settingsThemeBackgroundsTab": "背景",
   "settingsRefreshAccount": "刷新账户",
@@ -817,5 +817,18 @@
   "overdueEmpty": "没有逾期任务",
   "taskFocusSwitchTitle": "切换专注任务？",
   "taskFocusSwitchMessage": "切换后会停止当前专注。确定开始专注“{task}”吗？",
-  "taskFocusSwitchConfirm": "切换"
+  "taskFocusSwitchConfirm": "切换",
+  "focusSetupTitle": "开始专注",
+  "focusTaskLabel": "专注任务",
+  "focusNoTask": "不关联任务",
+  "focusPresetLabel": "专注方案",
+  "focusTargetRounds": "本次专注轮数",
+  "focusRoundsInvalid": "请输入 1–999 之间的整数。",
+  "focusRoundsHelp": "每轮包含一次专注，休息按所选方案安排。这里只设置本次轮数，不修改任务预估或专注方案。",
+  "focusReplaceSession": "结束当前专注，并按本次设置开始？已记录的专注时间会保留。",
+  "focusChooseTask": "选择专注任务",
+  "focusSearchTasks": "搜索未完成的任务",
+  "focusNoMatchingTasks": "没有匹配的未完成任务",
+  "focusChooseTaskAndRounds": "选择任务与轮次",
+  "focusSwitchTask": "切换任务"
 }

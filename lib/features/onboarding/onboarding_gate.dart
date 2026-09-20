@@ -8,6 +8,7 @@ import 'package:shadcn_ui/shadcn_ui.dart' show LucideIcons, ShadButton;
 import '../../app/account_providers.dart';
 import '../../app/app_language.dart';
 import '../../app/app_l10n.dart';
+import '../../app/personal_edition.dart';
 import '../../app/providers.dart';
 import '../../app/runtime_public_config.dart';
 import '../../app/theme/app_theme.dart';
@@ -67,14 +68,18 @@ class OnboardingController extends Notifier<OnboardingState> {
       unawaited(complete());
       return;
     }
-    state = state.copyWith(step: OnboardingStep.values[state.step.index + 1]);
+    state = state.copyWith(step: personalEdition && state.step == OnboardingStep.timer
+        ? OnboardingStep.account
+        : OnboardingStep.values[state.step.index + 1]);
   }
 
   void back() {
     if (state.step == OnboardingStep.language) {
       return;
     }
-    state = state.copyWith(step: OnboardingStep.values[state.step.index - 1]);
+    state = state.copyWith(step: personalEdition && state.step == OnboardingStep.account
+        ? OnboardingStep.timer
+        : OnboardingStep.values[state.step.index - 1]);
   }
 
   Future<void> complete() async {
@@ -95,7 +100,7 @@ class OnboardingController extends Notifier<OnboardingState> {
     var startedAt = _parseDateTime(
       prefs?.getString(launchOfferStartedAtPreferenceKey),
     );
-    if (startedAt == null) {
+    if (!personalEdition && startedAt == null) {
       startedAt = now;
       await prefs?.setString(
         launchOfferStartedAtPreferenceKey,
@@ -171,7 +176,7 @@ class OnboardingGate extends ConsumerWidget {
       children: [
         child,
         if (!state.loading && !state.completed) const _OnboardingOverlay(),
-        if (!state.loading && state.completed) const _LaunchOfferMiniWindow(),
+        if (!personalEdition && !state.loading && state.completed) const _LaunchOfferMiniWindow(),
       ],
     );
   }

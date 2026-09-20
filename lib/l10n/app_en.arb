@@ -3,7 +3,7 @@
   "settingsSectionAppearance": "Appearance",
   "settingsSectionTasksFocus": "Tasks and Focus",
   "settingsSectionIntegrations": "Integrations and data",
-  "settingsSectionAccount": "Account and Pro",
+  "settingsSectionAccount": "Account",
   "settingsThemeColorsTab": "Colors",
   "settingsThemeBackgroundsTab": "Backgrounds",
   "settingsRefreshAccount": "Refresh account",
@@ -907,5 +907,18 @@
         "type": "String"
       }
     }
-  }
+  },
+  "focusSetupTitle": "Start a focus session",
+  "focusTaskLabel": "Task",
+  "focusNoTask": "Focus without a task",
+  "focusPresetLabel": "Focus plan",
+  "focusTargetRounds": "Rounds for this session",
+  "focusRoundsInvalid": "Enter a number from 1 to 999.",
+  "focusRoundsHelp": "One round is one work interval. Breaks follow the selected plan. This does not change the task estimate or the plan.",
+  "focusReplaceSession": "End the current session and start with these settings? Recorded focus time will be kept.",
+  "focusChooseTask": "Choose a task",
+  "focusSearchTasks": "Search unfinished tasks",
+  "focusNoMatchingTasks": "No matching unfinished tasks",
+  "focusChooseTaskAndRounds": "Choose task and rounds",
+  "focusSwitchTask": "Switch task"
 }

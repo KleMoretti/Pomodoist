@@ -1,4 +1,6 @@
 import 'dart:async';
+
+import '../../app/personal_edition.dart';
 import 'dart:convert';
 import 'dart:developer' as developer;
 
@@ -831,6 +833,13 @@ class BillingController extends Notifier<BillingState> {
 
   @override
   BillingState build() {
+    if (personalEdition) {
+      return const BillingState(
+        loading: false,
+        platformSupported: false,
+        environmentEntitlementActive: true,
+      );
+    }
     final accountEntitlementActive = ref.read(
       billingAccountEntitlementProvider,
     );
@@ -931,6 +940,7 @@ class BillingController extends Notifier<BillingState> {
   });
 
   Future<void> purchase(String productId) async {
+    if (personalEdition) return;
     if (!state.canPurchase) {
       state = state.copyWith(
         error: 'Purchases are available on Apple devices.',
@@ -1000,6 +1010,7 @@ class BillingController extends Notifier<BillingState> {
   }
 
   Future<void> restorePurchases() async {
+    if (personalEdition) return;
     if (ref.read(billingChannelProvider) != BillingChannel.storeKit ||
         !state.platformSupported ||
         state.restoring ||
@@ -1053,6 +1064,7 @@ class BillingController extends Notifier<BillingState> {
   }
 
   Future<void> _load() async {
+    if (personalEdition) return;
     final prefs = await ref.read(sharedPreferencesProvider.future);
     if (!ref.mounted) {
       return;
@@ -1778,6 +1790,7 @@ class BillingPaywall extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (personalEdition) return const SizedBox.shrink();
     ref.listen<String?>(
       billingControllerProvider.select(
         (state) => state.purchaseSuccessProductId,

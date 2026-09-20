@@ -304,8 +304,8 @@ class AppTheme {
       _build(palette ?? classicDark, Brightness.dark);
 
   static const monoTextStyle = TextStyle(
-    fontFamily: 'GeistMono',
-    package: 'shadcn_ui',
+    fontFamily: 'packages/shadcn_ui/GeistMono',
+    fontFamilyFallback: ['NotoSansSC'],
     fontFeatures: [FontFeature.tabularFigures()],
   );
 
@@ -374,8 +374,7 @@ class AppTheme {
         selection: colors.accentTint,
       ),
       textTheme: shad.ShadTextTheme(
-        family: 'Geist',
-        package: 'shadcn_ui',
+        family: 'NotoSansSC',
         h1Large: theme.textTheme.displayLarge,
         h1: theme.textTheme.headlineLarge,
         h2: theme.textTheme.headlineMedium,
@@ -504,8 +503,7 @@ class AppTheme {
     final textTheme = Typography.material2021().englishLike
         .merge(ThemeData(useMaterial3: true, brightness: brightness).textTheme)
         .apply(
-          fontFamily: 'Geist',
-          package: 'shadcn_ui',
+          fontFamily: 'NotoSansSC',
           bodyColor: colors.primaryText,
           displayColor: colors.primaryText,
         );
@@ -518,8 +516,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      fontFamily: 'Geist',
-      package: 'shadcn_ui',
+      fontFamily: 'NotoSansSC',
       splashFactory: NoSplash.splashFactory,
       hoverColor: colors.surfaceHover,
       focusColor: colors.accentTint,
@@ -530,15 +527,15 @@ class AppTheme {
       textTheme: textTheme.copyWith(
         headlineMedium: textTheme.headlineMedium?.copyWith(
           fontWeight: FontWeight.w700,
-          letterSpacing: -0.4,
+          letterSpacing: 0,
         ),
         headlineSmall: textTheme.headlineSmall?.copyWith(
           fontWeight: FontWeight.w700,
-          letterSpacing: -0.2,
+          letterSpacing: 0,
         ),
         titleLarge: textTheme.titleLarge?.copyWith(
           fontWeight: FontWeight.w700,
-          letterSpacing: -0.1,
+          letterSpacing: 0,
         ),
         titleMedium: textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.w500,

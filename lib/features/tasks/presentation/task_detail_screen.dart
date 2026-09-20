@@ -26,6 +26,7 @@ import '../../../app/widgets/action_feedback.dart';
 import '../../../app/widgets/app_date_time_picker.dart';
 import '../../focus/domain/focus_models.dart';
 import '../../focus/presentation/focus_view_mode.dart';
+import '../../focus/presentation/focus_start_dialog.dart';
 import '../../planning/domain/quick_add_parser.dart';
 import '../domain/task_focus_estimate.dart';
 import '../domain/task_models.dart';
@@ -162,7 +163,6 @@ class TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     final l10n = context.l10n;
     final task = ref.watch(taskProvider(taskId));
     final taskRepository = ref.watch(taskRepositoryProvider);
-    final focusRepository = ref.watch(focusRepositoryProvider);
     return BackButtonListener(
       onBackButtonPressed: () async {
         await _goBack(context);
@@ -227,20 +227,9 @@ class TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                                       ? null
                                       : () async {
                                           final router = GoRouter.of(context);
-                                          await focusRepository.startRun(
-                                            StartFocusRunInput(
-                                              taskId: item.id,
-                                              projectId: item.projectId,
-                                              presetId: selectedPreset?.id,
-                                              targetWorkIntervals:
-                                                  _targetForStart(
-                                                    focusEstimate,
-                                                  ),
-                                            ),
-                                          );
-                                          if (!context.mounted) {
-                                            return;
-                                          }
+                                          final opened = await showFocusStartDialog(
+                                            context, ref, task: item, preset: selectedPreset);
+                                          if (!opened || !context.mounted) return;
                                           showActionFeedback(
                                             context,
                                             message: l10n.focusStarted,
@@ -800,13 +789,6 @@ void _showEditFailure(BuildContext context) {
     sound: ActionFeedbackSound.none,
     haptic: AppHapticCue.none,
   );
-}
-
-int? _targetForStart(int? estimate) {
-  if (estimate == null) {
-    return null;
-  }
-  return estimate < 1 ? 1 : estimate;
 }
 
 class _EditableTaskDescription extends ConsumerStatefulWidget {
