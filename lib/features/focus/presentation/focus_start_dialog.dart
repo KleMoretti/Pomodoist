@@ -164,7 +164,9 @@ class _FocusStartDialogState extends ConsumerState<_FocusStartDialog> {
                   value: preset.id, child: Text(focusPresetLabel(l10n, preset), overflow: TextOverflow.ellipsis))],
                 onChanged: _busy ? null : (id) => setState(() {
                   _preset = widget.presets.firstWhere((item) => item.id == id);
-                  if (!_roundsEdited) _rounds.text = _defaultRounds().toString();
+                  if (!_roundsEdited) {
+                    _rounds.text = _defaultRounds().toString();
+                  }
                 }),
               ),
               const SizedBox(height: 16),

@@ -22,7 +22,9 @@ class TaskFocusLauncher {
     required Future<bool> Function() confirmSwitch,
     int? targetWorkIntervals,
   }) async {
-    if (_starting || (task?.isCompleted ?? false) || (task?.isDeleted ?? false)) return false;
+    if (_starting || (task?.isCompleted ?? false) || (task?.isDeleted ?? false)) {
+      return false;
+    }
     if (targetWorkIntervals != null &&
         (targetWorkIntervals < 1 || targetWorkIntervals > 999)) {
       throw ArgumentError.value(targetWorkIntervals, 'targetWorkIntervals');

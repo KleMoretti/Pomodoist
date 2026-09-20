@@ -229,7 +229,9 @@ class TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                                           final router = GoRouter.of(context);
                                           final opened = await showFocusStartDialog(
                                             context, ref, task: item, preset: selectedPreset);
-                                          if (!opened || !context.mounted) return;
+                                          if (!opened || !context.mounted) {
+                                            return;
+                                          }
                                           showActionFeedback(
                                             context,
                                             message: l10n.focusStarted,
