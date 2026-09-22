@@ -67,6 +67,7 @@ SENTRY_DSN=
       output,
       contains('--dart-define=POMODOIST_BILLING_CHANNEL=storekit'),
     );
+    expect(output, isNot(contains('POMODOIST_LOCAL_STOREKIT')));
     expect(output, isNot(contains('GOOGLE_CLIENT_ID')));
     expect(output, isNot(contains('key-*.p8')));
     expect(output, isNot(contains('flutter" build ios')));

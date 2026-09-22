@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:pomodoist/domain/models/app_flavor.dart';
 import 'package:pomodoist/ui/focus/widgets/focus_screen.dart';
 import 'package:pomodoist/ui/google_calendar/widgets/google_calendar_settings_screen.dart';
 import 'package:pomodoist/ui/onboarding/widgets/onboarding_gate.dart';
@@ -378,12 +379,12 @@ String _localReturnPath(
 }
 
 bool _isLoginCallback(Uri uri) {
-  return (uri.scheme == 'pomodoist' && uri.host == 'login-callback') ||
+  return (uri.scheme == appFlavor.urlScheme && uri.host == 'login-callback') ||
       uri.path == '/login-callback';
 }
 
 bool _isFocusDeepLink(Uri uri) {
-  return uri.scheme == 'pomodoist' && uri.host == 'focus';
+  return uri.scheme == appFlavor.urlScheme && uri.host == 'focus';
 }
 
 String? webAppRedirectFor({
