@@ -5,7 +5,7 @@ import 'package:pomodoist/config/app_language.dart';
 import 'package:pomodoist/config/clock_provider.dart';
 import 'package:pomodoist/config/focus_dependencies.dart';
 import 'package:pomodoist/config/task_preferences_dependencies.dart';
-import 'package:pomodoist/data/services/personal_edition.dart';
+import 'package:pomodoist/domain/models/personal_edition.dart';
 import 'package:pomodoist/domain/models/focus/focus_view_mode.dart';
 import 'package:pomodoist/domain/models/settings/app_language.dart';
 

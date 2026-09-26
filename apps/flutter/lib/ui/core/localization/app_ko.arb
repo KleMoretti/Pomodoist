@@ -1631,5 +1631,62 @@
         "type": "String"
       }
     }
-  }
+  },
+  "calendarRhythm": "Rhythm",
+  "calendarCollapseMonth": "Collapse month",
+  "calendarExpandMonth": "Show month",
+  "settingsBottomNavigation": "Bottom navigation",
+  "settingsBottomNavigationDescription": "Choose up to five sections, their order, and the navigation style. Saved on this device.",
+  "settingsBottomNavigationSoft": "Soft accent",
+  "settingsBottomNavigationLabels": "With labels",
+  "settingsBottomNavigationPreview": "Preview",
+  "settingsBottomNavigationEmpty": "The bottom panel is hidden. All sections and these settings remain available from the top menu.",
+  "settingsBottomNavigationCount": "{count} of {max} sections",
+  "@settingsBottomNavigationCount": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "max": {"type": "int"}
+    }
+  },
+  "settingsBottomNavigationEarlier": "Move earlier",
+  "settingsBottomNavigationLater": "Move later",
+  "settingsBottomNavigationAdd": "Add a section",
+  "settingsBottomNavigationClear": "Remove all",
+  "settingsBottomNavigationDefaults": "Use defaults",
+  "settingsBottomNavigationLoadError": "Could not load navigation settings. Please try again.",
+  "settingsBottomNavigationEdit": "Customize",
+  "settingsBottomNavigationRemove": "Remove",
+  "recurrenceStartDate": "Start date",
+  "recurrenceEndDate": "End date (inclusive)",
+  "recurrenceNoEnd": "No end date",
+  "recurrenceStop": "Stop repeating",
+  "recurrenceInvalidDateRange": "The end date must not be before the start date.",
+  "recurrenceSaveFailed": "Could not save repeat settings. Please try again.",
+  "recurrenceDescription": "Repeat within these dates. Missed occurrences while the app is closed are skipped. Stopping keeps tasks already created.",
+  "focusSessionDisplay": "Session display",
+  "focusSessionCompact": "Compact",
+  "focusSessionIcons": "Icons",
+  "focusNextInterval": "Next: {phase} · {duration}",
+  "@focusNextInterval": {
+    "placeholders": {
+      "phase": {"type": "String"},
+      "duration": {"type": "String"}
+    }
+  },
+  "focusRoundsUnit": "rounds",
+  "focusPresetClassic": "Classic",
+  "focusPresetFlow": "Flow",
+  "focusSetupTitle": "Start a focus session",
+  "focusTaskLabel": "Task",
+  "focusNoTask": "Focus without a task",
+  "focusPresetLabel": "Focus plan",
+  "focusTargetRounds": "Rounds for this session",
+  "focusRoundsInvalid": "Enter a number from 1 to 999.",
+  "focusRoundsHelp": "One round is one work interval. Breaks follow the selected plan. This does not change the task estimate or the plan.",
+  "focusReplaceSession": "End the current session and start with these settings? Recorded focus time will be kept.",
+  "focusChooseTask": "Choose a task",
+  "focusSearchTasks": "Search unfinished tasks",
+  "focusNoMatchingTasks": "No matching unfinished tasks",
+  "focusChooseTaskAndRounds": "Choose task and rounds",
+  "focusSwitchTask": "Switch task"
 }

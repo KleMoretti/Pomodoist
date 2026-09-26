@@ -86,7 +86,9 @@ def check(root):
     errors, graph = [], {}
     for directory in (app, server):
         if not directory.is_dir():
-            errors.append(f'Missing source directory: {directory.relative_to(root)}')
+            errors.append(
+                f'Missing source directory: {directory.relative_to(root).as_posix()}'
+            )
     paths = list(app.rglob('*.dart')) + list(server.rglob('*.ts'))
     paths = [p for p in paths if not p.name.endswith(('.g.dart', '_test.ts'))
              and not p.match('*/localization/app_localizations*.dart')]
@@ -194,11 +196,11 @@ def check(root):
                     )
                     pure_contract = (
                         domain_parts[:2] == ('domain', 'use_cases')
-                        and str(rel) == 'data/repositories/local/local_transaction.dart'
+                        and rel.as_posix() == 'data/repositories/local/local_transaction.dart'
                     )
                     forbidden |= (
                         rel.parts[0] in ('app', 'ui', 'config', 'routing')
-                        or str(rel).startswith('core/db/')
+                        or rel.as_posix().startswith('core/db/')
                         or ('data' in rel.parts and not (repository_contract or pure_contract))
                         or 'presentation' in rel.parts
                     )
@@ -226,7 +228,10 @@ def check(root):
         for dependency in dependencies(path):
             target = (path.parent / dependency).resolve()
             if dependency.startswith('.') and target.parent == server / '_shared' and target.name not in helpers:
-                errors.append(f'Manifest omits {target.name} required by {path.relative_to(server)}')
+                errors.append(
+                    f'Manifest omits {target.name} required by '
+                    f'{path.relative_to(server).as_posix()}'
+                )
     return errors
 
 

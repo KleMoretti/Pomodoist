@@ -20,7 +20,7 @@ import 'package:pomodoist/config/runtime_public_config_loader.dart';
 import 'package:pomodoist/config/runtime_public_config_loader_core.dart';
 import 'package:pomodoist/config/sentry_observability.dart';
 import 'package:pomodoist/data/services/platform/web_bootstrap_loader.dart';
-import 'package:pomodoist/data/services/personal_edition.dart';
+import 'package:pomodoist/domain/models/personal_edition.dart';
 import 'package:pomodoist/domain/use_cases/account/pomodoist_retention.dart';
 import 'package:pomodoist/config/billing_dependencies.dart';
 import 'package:pomodoist/data/repositories/billing/billing_repository.dart';

@@ -1,5 +1,3 @@
-import 'package:pomodoist/data/services/local/database/app_database.dart'
-    show defaultPresetId, deepWorkPresetId, shortSprintPresetId, flowPresetId;
 import 'package:pomodoist/ui/core/localization/app_localizations.dart';
 import 'package:pomodoist/domain/models/focus/focus_models.dart';
 

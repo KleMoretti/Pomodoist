@@ -31,6 +31,7 @@ import 'package:pomodoist/data/services/google_calendar/google_calendar_sync_lif
 import 'package:pomodoist/data/services/planning/task_decomposer.dart';
 import 'package:pomodoist/data/services/planning/account_task_decomposition_transport.dart';
 import 'package:pomodoist/data/services/account/account_locale_service.dart';
+import 'package:pomodoist/domain/models/personal_edition.dart';
 import 'package:pomodoist/data/services/platform/native_captcha_startup.dart';
 import 'package:pomodoist/data/services/platform/native_link_coordinator.dart';
 import 'package:pomodoist/config/providers.dart';
@@ -301,8 +302,8 @@ final taskDecomposerProvider = Provider<TaskDecomposer>((ref) {
   final endpoint = taskDecompositionEndpoint();
   final transport = AccountTaskDecompositionTransport(
     account: ref.watch(accountClientProvider),
-    billingStore: ref.watch(billingStoreProvider),
-    localStoreKit: pomodoistUsesLocalStoreKit,
+    billingStore: personalEdition ? null : ref.watch(billingStoreProvider),
+    localStoreKit: personalEdition ? false : pomodoistUsesLocalStoreKit,
     endpoint: endpoint,
   );
   return SupabaseTaskDecomposer(transport: transport.call);

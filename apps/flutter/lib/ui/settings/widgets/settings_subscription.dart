@@ -5,6 +5,7 @@ import 'package:shadcn_ui/shadcn_ui.dart' show ShadButton, LucideIcons;
 import 'package:pomodoist/ui/core/localization/app_l10n.dart';
 import 'package:pomodoist/ui/core/themes/app_motion.dart';
 import 'package:pomodoist/ui/core/themes/app_theme.dart';
+import 'package:pomodoist/domain/models/personal_edition.dart';
 import 'package:pomodoist/domain/models/billing/billing_models.dart';
 import 'package:pomodoist/ui/billing/view_models/billing_view_model.dart';
 import 'package:pomodoist/ui/onboarding/widgets/onboarding_gate.dart';
@@ -46,6 +47,7 @@ class SettingsSubscription extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (personalEdition) return const SizedBox.shrink();
     final state = ref.watch(billingViewModelProvider);
     final l10n = context.l10n;
     final plan = switch (settingsSubscriptionTier(state)) {

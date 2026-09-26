@@ -7,7 +7,7 @@ import 'package:pomodoist/config/task_preferences_dependencies.dart';
 import 'package:pomodoist/data/repositories/billing/billing_repository.dart';
 import 'package:pomodoist/data/repositories/billing/billing_repository_impl.dart';
 import 'package:pomodoist/data/repositories/billing/personal_edition_billing_repository.dart';
-import 'package:pomodoist/data/services/personal_edition.dart';
+import 'package:pomodoist/domain/models/personal_edition.dart';
 import 'package:pomodoist/data/services/billing/billing_store.dart';
 import 'package:pomodoist/domain/models/billing/billing_access.dart';
 import 'package:pomodoist/domain/models/billing/billing_models.dart';

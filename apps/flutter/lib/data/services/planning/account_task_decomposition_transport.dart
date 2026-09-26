@@ -8,7 +8,7 @@ import 'package:pomodoist/domain/models/planning/task_decomposition.dart';
 final class AccountTaskDecompositionTransport {
   const AccountTaskDecompositionTransport({
     required AccountClient? account,
-    required BillingStore billingStore,
+    required BillingStore? billingStore,
     required bool localStoreKit,
     required String endpoint,
   }) : _account = account,
@@ -17,7 +17,7 @@ final class AccountTaskDecompositionTransport {
        _endpoint = endpoint;
 
   final AccountClient? _account;
-  final BillingStore _billingStore;
+  final BillingStore? _billingStore;
   final bool _localStoreKit;
   final String _endpoint;
 
@@ -26,9 +26,10 @@ final class AccountTaskDecompositionTransport {
     if (account == null) {
       throw const TaskDecompositionException('Voice analysis is unavailable.');
     }
-    final storeTransactions = account.currentUserId != null
+    final storeTransactions = account.currentUserId != null ||
+            _billingStore == null
         ? const <String>[]
-        : await _billingStore.pomodoistTransactionJws();
+        : await _billingStore!.pomodoistTransactionJws();
     try {
       final response = await account.invokeFunction(
         _endpoint,

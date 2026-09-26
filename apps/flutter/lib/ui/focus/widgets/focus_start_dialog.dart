@@ -7,16 +7,14 @@ import 'package:shadcn_ui/shadcn_ui.dart' show LucideIcons;
 
 import 'package:pomodoist/ui/core/localization/app_l10n.dart';
 import 'package:pomodoist/ui/core/localization/formatters.dart';
-import 'package:pomodoist/config/providers.dart';
-import 'package:pomodoist/config/task_focus_dependencies.dart';
 import 'package:pomodoist/ui/core/themes/app_motion.dart';
 import 'package:pomodoist/ui/core/themes/app_theme.dart';
 import 'package:pomodoist/ui/core/widgets/action_feedback.dart';
 import 'package:pomodoist/domain/models/tasks/task_focus_estimate.dart';
 import 'package:pomodoist/domain/models/tasks/task_models.dart';
-import 'package:pomodoist/domain/use_cases/focus/task_focus_launcher.dart';
 import 'package:pomodoist/domain/models/focus/focus_models.dart';
 import 'focus_preset_labels.dart';
+import 'package:pomodoist/ui/focus/view_models/focus_start_dialog_dependencies.dart';
 import 'package:pomodoist/domain/models/focus/focus_view_mode.dart';
 
 bool _focusSetupOpen = false;

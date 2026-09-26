@@ -26,7 +26,7 @@ void main() {
       'production',
       'https://app.pomodoist.com',
       'https://ewauihswbwduvklrozke.supabase.co',
-      true,
+      false,
     ),
   ]) {
     test('$environment gates official checks and installation', () async {

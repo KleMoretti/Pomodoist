@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart' show LucideIcons, ShadButton;
 
 import 'package:pomodoist/domain/models/settings/app_language.dart';
-import 'package:pomodoist/data/services/personal_edition.dart';
+import 'package:pomodoist/domain/models/personal_edition.dart';
 import 'package:pomodoist/domain/models/focus/focus_view_mode.dart';
 import 'package:pomodoist/ui/core/localization/app_l10n.dart';
 import 'package:pomodoist/ui/core/themes/app_theme.dart';
@@ -630,11 +630,13 @@ class _LaunchOfferPaywallState extends ConsumerState<LaunchOfferPaywall> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) {
-        setState(() {});
-      }
-    });
+    if (!personalEdition) {
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) {
+          setState(() {});
+        }
+      });
+    }
   }
 
   @override
@@ -645,6 +647,7 @@ class _LaunchOfferPaywallState extends ConsumerState<LaunchOfferPaywall> {
 
   @override
   Widget build(BuildContext context) {
+    if (personalEdition) return const SizedBox.shrink();
     final onboarding = ref.watch(onboardingViewModelProvider);
     final billing = ref.watch(billingViewModelProvider);
     final now = ref.read(onboardingViewModelProvider.notifier).now();

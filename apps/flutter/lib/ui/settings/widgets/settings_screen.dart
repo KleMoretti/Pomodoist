@@ -8,7 +8,7 @@ import 'package:shadcn_ui/shadcn_ui.dart'
     show LucideIcons, ShadButton, ShadSwitch, ShadSelect, ShadOption;
 
 import 'package:pomodoist/domain/models/settings/app_language.dart';
-import 'package:pomodoist/data/services/personal_edition.dart';
+import 'package:pomodoist/domain/models/personal_edition.dart';
 import 'package:pomodoist/ui/core/localization/app_l10n.dart';
 import 'package:pomodoist/ui/core/themes/app_motion.dart';
 import 'package:pomodoist/ui/core/themes/app_theme.dart';

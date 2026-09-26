@@ -4,15 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import 'package:pomodoist/ui/core/localization/app_l10n.dart';
-import 'package:pomodoist/config/providers.dart';
 import 'package:pomodoist/ui/core/themes/app_theme.dart';
 import 'package:pomodoist/ui/core/widgets/app_date_time_picker.dart';
 import 'package:pomodoist/domain/models/tasks/task_models.dart';
-
-final _recurrenceTaskProvider = StreamProvider.autoDispose
-    .family<TaskItem?, String>(
-      (ref, id) => ref.watch(taskRepositoryProvider).watchRecurrenceTask(id),
-    );
+import 'package:pomodoist/ui/tasks/view_models/task_recurrence_view_model.dart';
 
 class TaskRecurrenceButton extends ConsumerWidget {
   const TaskRecurrenceButton({required this.task, super.key});
@@ -21,7 +16,7 @@ class TaskRecurrenceButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final source = ref.watch(_recurrenceTaskProvider(task.id));
+    final source = ref.watch(recurrenceTaskProvider(task.id));
     final recurrence = (source.value ?? task).schedule?.recurrence;
     final l10n = context.l10n;
     final label = recurrence == null
@@ -77,7 +72,7 @@ class _RecurrenceDialogState extends ConsumerState<_RecurrenceDialog> {
     _start =
         rule?.startDate ??
         widget.task.schedule?.displayDate ??
-        DateUtils.dateOnly(ref.read(clockProvider).now().toLocal());
+        DateUtils.dateOnly(ref.read(recurrenceClockProvider).now().toLocal());
     _initialStart = _start;
     _end = rule?.endDate;
   }

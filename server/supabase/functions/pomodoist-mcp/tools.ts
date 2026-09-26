@@ -1,6 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { registerCollaborationTool } from "./collaboration_tools.ts";
 import { mutate } from "./mutation_helpers.ts";
 import { pomodoistMutationPlans } from "./mutation_plans.ts";
 import { type PomodoistMcpAuth, toolSuccess } from "./pomodoist_mcp.ts";
@@ -127,7 +126,6 @@ export function registerPomodoistTools(
       return mutate(context, plan.operations, plan.result);
     }));
   }
-  registerCollaborationTool(server, auth, dependencies, outputEnvelope(z.record(z.string(), z.unknown())));
 }
 
 function productivityReport(value: unknown) {

@@ -41,6 +41,8 @@ rewrite stored names just because the interface language changed.
 | Task row events and effects | [task_motion.dart](../apps/flutter/lib/ui/tasks/widgets/task_motion.dart) |
 | Voice panel motion | [voice_panel_motion.dart](../apps/flutter/lib/ui/tasks/widgets/voice_panel_motion.dart) |
 | Focus completion | [focus_completion_celebration.dart](../apps/flutter/lib/ui/focus/widgets/focus_completion_celebration.dart) |
+| Bottom navigation and shared menus | [app_bottom_navigation.dart](../apps/flutter/lib/ui/core/widgets/app_bottom_navigation.dart), [app_action_menu.dart](../apps/flutter/lib/ui/core/widgets/app_action_menu.dart) |
+| Focus controls and stages | [focus_active_controls.dart](../apps/flutter/lib/ui/focus/widgets/focus_active_controls.dart), [focus_stage.dart](../apps/flutter/lib/ui/focus/widgets/focus_stage.dart) |
 
 `AppThemePalette` is the single source of colors. In widgets, use
 `context.appColors`, `Theme.of(context).textTheme`, and `AppTheme.monoTextStyle`.
@@ -234,6 +236,32 @@ remove and adjust periods; invalid or overlapping ranges cannot be saved. Tasks
 outside the configured periods remain visible. The routine and selected mode are
 local preferences; failed saves retain the editor draft. Reuse shared colors,
 fonts, localized time/date formatting and existing Focus/task actions.
+
+### Mobile navigation, menus, and Focus controls
+
+The narrow shell supports at most five bottom-navigation destinations. Respect
+the system safe area, keep each destination's icon and selected state stable, and
+use the shared palette rather than a screen-specific bar color. Labels may be
+hidden only through the saved navigation-style preference; icons still require
+localized semantic labels and visible keyboard focus. Keep the bar above the
+keyboard and floating Quick Add/focus surfaces. Each destination and action
+keeps a 48 px minimum touch target, and Reduce Motion completes selection and
+reordering immediately.
+
+Use `AppActionMenu` for shared task/project actions and the existing context-menu
+region for pointer-positioned menus. Open menus only after explicit activation,
+place them within the viewport near edges, and preserve the same action order,
+keyboard navigation, Escape behavior and semantics on desktop and touch. Menu
+rows keep a 44 px minimum height, disabled/destructive states are communicated
+by more than color, and no menu opens merely because a pointer hovers an
+ellipsis.
+
+The active Focus dock uses the same timer state and preset labels as the Focus
+screen. Keep pause/complete/stop and plan actions available from the dock,
+provide a compact responsive timer at narrow widths, and expose the current
+stage, remaining time and action labels to accessibility services. Focus controls
+must retain the active session while the shell resizes or navigation changes;
+Reduce Motion removes decorative movement without delaying state changes.
 
 ### Compact task creation
 
@@ -563,7 +591,7 @@ use a 216 px section menu and a content pane. Narrower layouts show the section
 index or the selected section with Back. Resize the existing tree: retain the
 selected section, each visited section's scroll position, and unfinished input.
 The `section` query parameter on `/settings` identifies General, Appearance,
-Tasks and Focus (`tasks-focus`), Integrations and data, Account and Pro, or About.
+Tasks and Focus (`tasks-focus`), Integrations and data, Account, or About.
 Without a valid parameter, the initial wide view opens General and the narrow
 view opens the index. Profile and Browse account links open `section=account`.
 Keep the existing shortcuts and Google Calendar routes and their return paths.
@@ -583,26 +611,28 @@ windows and a full-screen surface below 600 px. Preserve independent tab scroll
 positions and invalid input while switching tabs. Keep Classic editor chrome,
 live previews, validation, reset, save failures and cancel restoration.
 
-Show a compact, localized account profile and subscription status. Offer the
-existing LaunchOfferPaywall through a button, retaining purchase, restoration
-and management actions and the account-section return location. Loading and
-failed subscription lookups are unknown rather than confirmed Free; keep
-confirmed entitlement data visible during refreshes. Put sign-out and account
-deletion in a separate bottom group. Keep platform and authentication gates,
-import previews, integration warnings, revoke confirmations and shortcut conflict
-handling. Persistence errors show existing feedback without resetting session
-values. Standalone login and registration retain their own layouts.
+Show a compact, localized account profile when the account service is configured.
+The Chinese personal edition does not render subscription status, purchase,
+restore, offer or management controls; local feature access is supplied by the
+personal-edition repository and is not presented as a hosted entitlement. Hosted
+variants may add their own billing surface only with an explicit product and
+backend contract. Put sign-out and account deletion in a separate bottom group.
+Keep platform and authentication gates, import previews, integration warnings,
+revoke confirmations and shortcut conflict handling. Persistence errors show
+existing feedback without resetting session values. Standalone login and
+registration retain their own layouts.
 
 ### First-run onboarding
 
 Use the compact slide-card direction from variant 02 in
 `variants/onboarding/index.html`: a brand row, a decorative illustration above
-the current setting, and a pinned footer with Back, four progress indicators,
-and Continue / Later / Finish. The flow remains Language, Timer, Pro, Account.
+the current setting, and a pinned footer with Back, progress indicators, and
+Continue / Finish. The Chinese personal-edition flow is Language, Timer,
+Account; hosted variants may add a separately specified product step.
 Center a dialog up to 540 px wide on larger windows; below 600 px, use the full
-safe area. Scroll the slide body independently so purchasing and account content
-remain reachable in short windows. Stack progress above the actions on narrow
-layouts or with enlarged text.
+safe area. Scroll the slide body independently so account content remains
+reachable in short windows. Stack progress above the actions on narrow layouts
+or with enlarged text.
 
 Show all supported languages as selectable tiles, with System using a full row.
 Show Bar and Circle as timer preview cards; the illustration follows the selected
@@ -615,8 +645,9 @@ at least 48 px and prevent focus from reaching the underlying app.
 Back, progress indicators and swipes over the illustration navigate between
 slides without clearing saved settings. Mirror swipe direction in RTL; a swipe
 on the account slide never finishes the wizard. Use the shared 180 ms fade,
-finishing immediately with Reduce Motion. Keep real billing and account actions,
-including purchase restoration and signed-in/error states. Account buttons use
+finishing immediately with Reduce Motion. The personal edition does not
+initialize StoreKit/Stripe or show purchase prompts; account actions remain
+limited to the explicitly configured sign-in/sync boundary. Account buttons use
 the shared panel's compact vertical presentation. Closing or finishing still
 persists completion; prevent overlapping preference writes and show localized,
 retryable feedback when a write fails.
