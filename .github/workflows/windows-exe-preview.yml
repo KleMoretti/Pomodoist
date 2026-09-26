@@ -47,9 +47,9 @@ jobs:
         id: version
         shell: bash
         run: |
-          pubspec_version=$(awk '/^version:/ {sub(/\r$/, ""); print $2; exit}' pubspec.yaml)
+          pubspec_version=$(awk '/^version:/ {sub(/\r$/, ""); print $2; exit}' apps/flutter/pubspec.yaml)
           if [[ ! "$pubspec_version" =~ ^.+\+([0-9]+)$ ]]; then
-            echo 'pubspec.yaml must contain a numeric build number after +.' >&2
+            echo 'apps/flutter/pubspec.yaml must contain a numeric build number after +.' >&2
             exit 64
           fi
           build_number="${BASH_REMATCH[1]}"
@@ -59,49 +59,56 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version-file: .fvmrc
+      - name: Link Flutter build output into build/
+        run: >-
+          powershell.exe -NoProfile -ExecutionPolicy Bypass
+          -File .\tool\windows\link-build.ps1
       - run: flutter pub get
+        working-directory: apps/flutter
       - name: Generate translations and format changed sources
         run: |
           flutter gen-l10n
           if ($LASTEXITCODE -ne 0) { throw 'Localization generation failed.' }
           dart format lib/app/app_language.dart lib/app/app_l10n.dart lib/features/tasks/domain/task_models.dart lib/features/tasks/data/task_repository_impl.dart lib/features/tasks/presentation/task_detail_screen.dart lib/features/tasks/presentation/task_recurrence_button.dart test/chinese_recurrence_test.dart test/core_features_test.dart lib/features/focus/presentation/focus_preset_labels.dart lib/features/focus/presentation/focus_stage.dart lib/features/focus/presentation/focus_active_controls.dart lib/features/focus/presentation/focus_screen.dart lib/main.dart lib/app/personal_edition.dart lib/app/theme/app_theme.dart lib/features/billing/billing.dart lib/features/onboarding/onboarding_gate.dart lib/features/settings/presentation/settings_screen.dart lib/features/tasks/presentation/task_focus_launcher.dart lib/features/tasks/presentation/widgets/task_list_item.dart lib/features/tasks/presentation/kanban/kanban_screen.dart lib/features/focus/presentation/focus_start_dialog.dart test/personal_edition_test.dart test/task_focus_launcher_test.dart
           if ($LASTEXITCODE -ne 0) { throw 'Formatting failed.' }
+        working-directory: apps/flutter
       - name: Save generated sources for SDK-free development
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: chinese-generated-sources
           path: |
-            lib/l10n/app_localizations*.dart
-            lib/app/app_language.dart
-            lib/app/app_l10n.dart
-            lib/features/tasks/domain/task_models.dart
-            lib/features/tasks/data/task_repository_impl.dart
-            lib/features/tasks/presentation/task_detail_screen.dart
-            lib/features/tasks/presentation/task_recurrence_button.dart
-            lib/features/focus/presentation/focus_preset_labels.dart
-            lib/features/focus/presentation/focus_stage.dart
-            lib/features/focus/presentation/focus_active_controls.dart
-            lib/features/focus/presentation/focus_screen.dart
-            test/chinese_recurrence_test.dart
-            test/core_features_test.dart
-            lib/main.dart
-            lib/app/personal_edition.dart
-            lib/app/theme/app_theme.dart
-            lib/features/billing/billing.dart
-            lib/features/onboarding/onboarding_gate.dart
-            lib/features/settings/presentation/settings_screen.dart
-            lib/features/tasks/presentation/task_focus_launcher.dart
-            lib/features/tasks/presentation/widgets/task_list_item.dart
-            lib/features/tasks/presentation/kanban/kanban_screen.dart
-            lib/features/focus/presentation/focus_start_dialog.dart
-            test/personal_edition_test.dart
-            test/task_focus_launcher_test.dart
+            apps/flutter/lib/l10n/app_localizations*.dart
+            apps/flutter/lib/app/app_language.dart
+            apps/flutter/lib/app/app_l10n.dart
+            apps/flutter/lib/features/tasks/domain/task_models.dart
+            apps/flutter/lib/features/tasks/data/task_repository_impl.dart
+            apps/flutter/lib/features/tasks/presentation/task_detail_screen.dart
+            apps/flutter/lib/features/tasks/presentation/task_recurrence_button.dart
+            apps/flutter/lib/features/focus/presentation/focus_preset_labels.dart
+            apps/flutter/lib/features/focus/presentation/focus_stage.dart
+            apps/flutter/lib/features/focus/presentation/focus_active_controls.dart
+            apps/flutter/lib/features/focus/presentation/focus_screen.dart
+            apps/flutter/test/chinese_recurrence_test.dart
+            apps/flutter/test/core_features_test.dart
+            apps/flutter/lib/main.dart
+            apps/flutter/lib/app/personal_edition.dart
+            apps/flutter/lib/app/theme/app_theme.dart
+            apps/flutter/lib/features/billing/billing.dart
+            apps/flutter/lib/features/onboarding/onboarding_gate.dart
+            apps/flutter/lib/features/settings/presentation/settings_screen.dart
+            apps/flutter/lib/features/tasks/presentation/task_focus_launcher.dart
+            apps/flutter/lib/features/tasks/presentation/widgets/task_list_item.dart
+            apps/flutter/lib/features/tasks/presentation/kanban/kanban_screen.dart
+            apps/flutter/lib/features/focus/presentation/focus_start_dialog.dart
+            apps/flutter/test/personal_edition_test.dart
+            apps/flutter/test/task_focus_launcher_test.dart
       - name: Analyze and run minimal feature tests
         run: |
           flutter analyze --no-pub
           if ($LASTEXITCODE -ne 0) { throw 'Static analysis failed.' }
           flutter test --no-pub test/chinese_recurrence_test.dart test/personal_edition_test.dart test/task_focus_launcher_test.dart
           if ($LASTEXITCODE -ne 0) { throw 'Feature tests failed.' }
+        working-directory: apps/flutter
       - name: Test installer packaging boundary
         run: >-
           powershell.exe -NoProfile -ExecutionPolicy Bypass
@@ -127,20 +134,44 @@ jobs:
         run: >-
           flutter build windows --release
           --dart-define=POMODOIST_ENVIRONMENT=local
-          --dart-define=POMODOIST_BILLING_CHANNEL=stripe
           --dart-define=POMODOIST_RELEASE=${{ github.sha }}
+        working-directory: apps/flutter
       - name: Compile installer and checksum with pinned compiler
         run: |
           $compiler = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
           powershell.exe -NoProfile -ExecutionPolicy Bypass `
             -File .\tool\windows\installer\build.ps1 `
-            -BuildDirectory build\windows\x64\runner\Release `
+            -BuildDirectory apps\flutter\build\windows\x64\runner\Release `
             -CompilerPath $compiler
+      - name: Compile a non-production flavor with pinned compiler
+        run: |
+          # The three flavors share one installer source, and a display name with
+          # a space is the part of the parameterization the packaging test cannot
+          # exercise, so one real compile proves it end to end. The result stays
+          # in the runner temp directory and is never uploaded.
+          $compiler = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          $flavorDir = Join-Path $env:RUNNER_TEMP 'flavor-installer'
+          powershell.exe -NoProfile -ExecutionPolicy Bypass `
+            -File .\tool\windows\installer\build.ps1 `
+            -Flavor staging `
+            -BuildDirectory build\flutter\windows\x64\production\runner\Release `
+            -OutputDirectory $flavorDir `
+            -CompilerPath $compiler
+          $stagingInstaller = Join-Path $flavorDir 'Pomodoist-Staging-Setup.exe'
+          if (-not (Test-Path -LiteralPath $stagingInstaller -PathType Leaf)) {
+            throw 'The staging flavor did not produce its own installer name.'
+          }
+          $productName = (
+            [System.Diagnostics.FileVersionInfo]::GetVersionInfo($stagingInstaller)
+          ).ProductName.Trim()
+          if ($productName -cne 'Pomodoist Stg') {
+            throw "Staging installer product name was '$productName'."
+          }
       - name: Verify versions, unsigned boundary, and checksum
         run: |
-          $installer = Resolve-Path build\windows\installer\Pomodoist-Setup.exe
+          $installer = Resolve-Path build\flutter\windows\installer\Pomodoist-Setup.exe
           $installerInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($installer)
-          $appPath = (Resolve-Path build\windows\x64\runner\Release\pomodoist.exe).Path
+          $appPath = (Resolve-Path build\flutter\windows\x64\production\runner\Release\pomodoist.exe).Path
           $appInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($appPath)
           if ($installerInfo.ProductVersion.Trim() -cne $env:POMODOIST_VERSION -or
               $appInfo.ProductVersion.Split('+')[0] -cne $env:POMODOIST_VERSION) {
@@ -164,8 +195,8 @@ jobs:
         with:
           name: pomodoist-windows-exe
           path: |
-            build/windows/installer/Pomodoist-Setup.exe
-            build/windows/installer/Pomodoist-Setup.exe.sha256
+            build/flutter/windows/installer/Pomodoist-Setup.exe
+            build/flutter/windows/installer/Pomodoist-Setup.exe.sha256
           if-no-files-found: error
           retention-days: 14
 

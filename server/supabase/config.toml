@@ -12,6 +12,10 @@ site_url = "http://localhost:58080"
 additional_redirect_urls = [
   "http://localhost:58080/login-callback",
   "http://localhost:58080/auth/challenge",
+  "pomodoist-dev://login-callback",
+  "pomodoist-dev://captcha-callback",
+  "pomodoist-stg://login-callback",
+  "pomodoist-stg://captcha-callback",
   "pomodoist://login-callback",
   "pomodoist://captcha-callback",
 ]
@@ -54,4 +58,7 @@ verify_jwt = false
 
 [functions.pomodoist-transcribe]
 # The handler verifies the bearer token through Auth.getUser, including new JWT keys.
+verify_jwt = false
+
+[functions.pomodoist-ai]
 verify_jwt = false

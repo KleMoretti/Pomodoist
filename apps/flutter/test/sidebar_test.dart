@@ -1,0 +1,1605 @@
+import 'package:pomodoist/domain/models/account/account_overview.dart';
+import 'package:pomodoist/domain/models/settings/app_language.dart';
+import 'package:pomodoist/ui/core/localization/app_locale.dart';
+import 'package:shadcn_ui/shadcn_ui.dart'
+    show ShadSelect, ShadButton, LucideIcons;
+import 'support/test_app.dart';
+import '../testing/fakes/fake_focus_repository.dart';
+// ignore_for_file: deprecated_member_use
+
+import 'dart:convert';
+
+import 'package:app_voice/app_voice.dart';
+import 'package:drift/native.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:pomodoist/config/account_providers.dart';
+import 'package:pomodoist/config/app_language.dart';
+import 'package:pomodoist/config/voice_dependencies.dart';
+import 'package:pomodoist/ui/core/widgets/app_startup_gate.dart';
+import 'package:pomodoist/ui/core/view_models/app_theme_mode_view_model.dart';
+import 'package:pomodoist/config/keyboard_shortcuts.dart';
+import 'package:pomodoist/ui/core/platform/macos_app_menu.dart';
+import 'package:pomodoist/config/providers.dart';
+import 'package:pomodoist/routing/router.dart';
+import 'package:pomodoist/ui/core/themes/app_theme.dart';
+import 'package:pomodoist/ui/core/widgets/resizable_dialog.dart';
+import 'package:pomodoist/data/services/local/database/app_database.dart';
+import 'package:pomodoist/utils/clock.dart';
+import 'package:pomodoist/config/billing_dependencies.dart';
+import 'package:pomodoist/config/billing_store_dependencies.dart';
+import 'package:pomodoist/domain/models/focus/focus_models.dart';
+import 'package:pomodoist/ui/focus/widgets/focus_screen.dart';
+import 'package:pomodoist/ui/onboarding/widgets/onboarding_gate.dart';
+import 'package:pomodoist/ui/planning/widgets/today_screen.dart';
+import 'package:pomodoist/domain/models/productivity/achievement_models.dart';
+import 'package:pomodoist/domain/models/productivity/productivity_models.dart';
+import 'package:pomodoist/ui/productivity/widgets/reports_screen.dart';
+import 'package:pomodoist/ui/settings/widgets/keyboard_shortcuts_screen.dart';
+import 'package:pomodoist/ui/settings/widgets/settings_screen.dart';
+import 'package:pomodoist/domain/models/tasks/task_models.dart';
+import 'package:pomodoist/ui/tasks/widgets/browse_screen.dart';
+import 'package:pomodoist/ui/tasks/widgets/inbox_screen.dart';
+import 'package:pomodoist/ui/tasks/widgets/kanban_screen.dart';
+import 'package:pomodoist/ui/tasks/widgets/priority_matrix_screen.dart';
+import 'package:pomodoist/ui/tasks/widgets/search_screen.dart';
+import 'package:pomodoist/ui/tasks/widgets/timeline_screen.dart';
+import 'package:pomodoist/ui/tasks/widgets/upcoming_screen.dart';
+import 'package:pomodoist/ui/tasks/widgets/quick_add_bar.dart';
+import 'package:pomodoist/ui/core/localization/app_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+const _wideSidebarFrameKey = Key('wide-sidebar-frame');
+const _wideSidebarResizeHandleKey = Key('wide-sidebar-resize-handle');
+const _wideSidebarEdgeHandleKey = Key('wide-sidebar-edge-reveal-handle');
+const _shellMenuButtonKey = Key('shell-menu-button');
+const _workProjectScopeId = 'scope-work';
+const _longProjectName =
+    'A shared project whose name is far too long for a single row';
+
+void main() {
+  setUpAll(loadTestAppResources);
+  setUp(() {
+    SharedPreferences.setMockInitialValues({
+      onboardingCompletedPreferenceKey: true,
+      launchOfferStartedAtPreferenceKey: '2026-01-01T10:00:00.000Z',
+    });
+  });
+
+  testWidgets('wide layout renders Todoist-like sidebar', (tester) async {
+    await _pumpWideApp(tester);
+
+    expect(find.text('Add task'), findsOneWidget);
+    expect(find.text('Search'), findsOneWidget);
+    expect(find.text('Inbox'), findsOneWidget);
+    expect(find.text('Priority Matrix'), findsOneWidget);
+    expect(find.text('Timeline'), findsOneWidget);
+    expect(find.text('Kanban'), findsOneWidget);
+    expect(find.text('Today'), findsAtLeastNWidgets(1));
+    expect(find.text('Upcoming'), findsOneWidget);
+    expect(find.text('Focus'), findsOneWidget);
+    expect(find.text('Browse'), findsOneWidget);
+    expect(find.text('Reports'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey('sidebar-destination-/integrations/google-calendar'),
+      ),
+      findsNothing,
+    );
+    const destinations = [
+      '/search',
+      '/inbox',
+      '/today',
+      '/upcoming',
+      '/focus',
+      '/timeline',
+      '/kanban',
+      '/priority-matrix',
+      '/browse',
+      '/reports',
+      '/settings',
+    ];
+    for (final path in destinations) {
+      expect(find.byKey(ValueKey('sidebar-destination-$path')), findsOneWidget);
+    }
+    final destinationTops = [
+      for (final path in destinations)
+        tester.getTopLeft(find.byKey(ValueKey('sidebar-destination-$path'))).dy,
+    ];
+    for (var i = 1; i < destinationTops.length; i++) {
+      expect(destinationTops[i], greaterThan(destinationTops[i - 1]));
+    }
+    expect(find.text('Projects'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('sidebar-projects-link')),
+        matching: find.text('1'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Work'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('sidebar-project-work')),
+        matching: find.text('1'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('sidebar-destination-/inbox')),
+        matching: find.text('1'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('sidebar-destination-/today')),
+        matching: find.text('2'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('sidebar-destination-/upcoming')),
+        matching: find.text('3'),
+      ),
+      findsOneWidget,
+    );
+    await _disposeApp(tester);
+  });
+
+  testWidgets('sidebar keyboard shortcut toggles wide layout', (tester) async {
+    await _pumpWideApp(tester);
+
+    expect(find.text('Add task'), findsOneWidget);
+
+    await _pressSidebarShortcut(tester, LogicalKeyboardKey.metaLeft);
+    expect(find.text('Add task'), findsNothing);
+
+    await _pressSidebarShortcut(tester, LogicalKeyboardKey.metaLeft);
+    expect(find.text('Add task'), findsOneWidget);
+    await _disposeApp(tester);
+  });
+
+  testWidgets('macOS modifier flags trigger app shortcuts', (tester) async {
+    await _pumpWideApp(tester);
+
+    expect(find.text('Add task'), findsOneWidget);
+
+    _sendRawMacShortcut(keyCode: 11, character: 'b');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Add task'), findsNothing);
+    await _disposeApp(tester);
+  });
+
+  testWidgets('quick add shortcut opens only one existing dialog', (
+    tester,
+  ) async {
+    await _pumpWideApp(tester);
+
+    await _pressShortcut(
+      tester,
+      LogicalKeyboardKey.metaLeft,
+      LogicalKeyboardKey.keyK,
+    );
+    expect(find.byType(TodayScreen), findsOneWidget);
+    expect(find.byType(SearchScreen), findsNothing);
+
+    await _pressShortcut(
+      tester,
+      LogicalKeyboardKey.metaLeft,
+      LogicalKeyboardKey.keyN,
+    );
+    await _pressShortcut(
+      tester,
+      LogicalKeyboardKey.metaLeft,
+      LogicalKeyboardKey.keyN,
+    );
+
+    expect(find.byKey(const Key('sidebar-quick-add-input')), findsOneWidget);
+    await _disposeApp(tester);
+  });
+
+  testWidgets(
+    'number shortcuts retain their commands after sidebar reordering',
+    (tester) async {
+      await _pumpWideApp(tester);
+
+      await _pressShortcut(
+        tester,
+        LogicalKeyboardKey.metaLeft,
+        LogicalKeyboardKey.digit1,
+      );
+      expect(find.byType(BrowseScreen), findsOneWidget);
+
+      await _pressShortcut(
+        tester,
+        LogicalKeyboardKey.metaLeft,
+        LogicalKeyboardKey.digit2,
+      );
+      expect(find.byType(Dialog), findsOneWidget);
+      expect(find.byType(SearchScreen), findsNothing);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+
+      await _pressShortcut(
+        tester,
+        LogicalKeyboardKey.metaLeft,
+        LogicalKeyboardKey.digit3,
+      );
+      expect(find.byType(TodayScreen), findsOneWidget);
+
+      await _pressShortcut(
+        tester,
+        LogicalKeyboardKey.metaLeft,
+        LogicalKeyboardKey.digit4,
+      );
+      expect(find.byType(UpcomingScreen), findsOneWidget);
+
+      await _pressShortcut(
+        tester,
+        LogicalKeyboardKey.metaLeft,
+        LogicalKeyboardKey.digit5,
+      );
+      expect(find.byType(FocusScreen), findsOneWidget);
+
+      await _pressShortcut(
+        tester,
+        LogicalKeyboardKey.metaLeft,
+        LogicalKeyboardKey.digit6,
+      );
+      expect(find.byType(InboxScreen), findsOneWidget);
+
+      await _pressShortcut(
+        tester,
+        LogicalKeyboardKey.metaLeft,
+        LogicalKeyboardKey.digit7,
+      );
+      expect(find.byType(PriorityMatrixScreen), findsOneWidget);
+
+      await _pressShortcut(
+        tester,
+        LogicalKeyboardKey.metaLeft,
+        LogicalKeyboardKey.digit8,
+      );
+      expect(find.byType(TimelineScreen), findsOneWidget);
+
+      await _pressShortcut(
+        tester,
+        LogicalKeyboardKey.metaLeft,
+        LogicalKeyboardKey.digit9,
+      );
+      expect(find.byType(KanbanScreen), findsOneWidget);
+
+      await _pressShortcutWithShift(
+        tester,
+        LogicalKeyboardKey.metaLeft,
+        LogicalKeyboardKey.digit0,
+      );
+      expect(find.byType(ReportsScreen), findsOneWidget);
+
+      await _pressShortcutWithShift(
+        tester,
+        LogicalKeyboardKey.metaLeft,
+        LogicalKeyboardKey.digit1,
+      );
+      expect(find.byType(SettingsScreen), findsOneWidget);
+      await _disposeApp(tester);
+    },
+  );
+
+  testWidgets('reassigned sidebar shortcut replaces the default', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      onboardingCompletedPreferenceKey: true,
+      launchOfferStartedAtPreferenceKey: '2026-01-01T10:00:00.000Z',
+      keyboardShortcutsPreferenceKey: jsonEncode({
+        AppShortcutCommand.toggleSidebar.storageKey: {
+          'physicalKeyId': PhysicalKeyboardKey.keyJ.usbHidUsage,
+          'keyLabel': 'J',
+          'meta': true,
+          'control': false,
+          'alt': false,
+          'shift': false,
+        },
+      }),
+    });
+    await _pumpWideApp(tester);
+
+    await _pressShortcut(
+      tester,
+      LogicalKeyboardKey.metaLeft,
+      LogicalKeyboardKey.keyB,
+    );
+    expect(find.text('Add task'), findsOneWidget);
+
+    await _pressShortcut(
+      tester,
+      LogicalKeyboardKey.metaLeft,
+      LogicalKeyboardKey.keyJ,
+    );
+    expect(find.text('Add task'), findsNothing);
+    await _disposeApp(tester);
+  });
+
+  testWidgets('macOS app menu syncs commands and reuses shortcut actions', (
+    tester,
+  ) async {
+    const channel = MethodChannel(macOSAppMenuChannelName);
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    final calls = <MethodCall>[];
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return null;
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+
+    await _pumpWideApp(tester);
+
+    final syncCall = calls.lastWhere(
+      (call) => call.method == macOSAppMenuSetCommandsMethod,
+    );
+    final commands = Map<String, Object?>.from(syncCall.arguments as Map);
+    expect(commands['locale'], 'en');
+    expect(commands.keys, {
+      'locale',
+      for (final command in AppShortcutCommand.values) command.name,
+    });
+    expect(commands[AppShortcutCommand.quickAdd.name], {
+      'label': 'Add task',
+      'keyLabel': 'N',
+      'meta': true,
+      'control': false,
+      'alt': false,
+      'shift': false,
+    });
+
+    await messenger.handlePlatformMessage(
+      macOSAppMenuChannelName,
+      const StandardMethodCodec().encodeMethodCall(
+        const MethodCall(macOSAppMenuSelectedMethod, 'quickAdd'),
+      ),
+      (_) {},
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('sidebar-quick-add-input')), findsOneWidget);
+    await _disposeApp(tester);
+  });
+
+  testWidgets('top menu button toggles wide sidebar', (tester) async {
+    await _pumpWideApp(tester);
+
+    expect(find.byKey(_shellMenuButtonKey), findsOneWidget);
+    expect(find.text('Add task'), findsOneWidget);
+
+    await tester.tap(find.byKey(_shellMenuButtonKey));
+    await tester.pumpAndSettle();
+    expect(find.text('Add task'), findsNothing);
+
+    await tester.tap(find.byKey(_shellMenuButtonKey));
+    await tester.pumpAndSettle();
+    expect(find.text('Add task'), findsOneWidget);
+    await _disposeApp(tester);
+  });
+
+  testWidgets('wide sidebar restore animates from collapsed state', (
+    tester,
+  ) async {
+    await _pumpWideApp(tester);
+
+    await _pressSidebarShortcut(tester, LogicalKeyboardKey.metaLeft);
+    expect(find.byKey(_wideSidebarFrameKey), findsNothing);
+
+    await _pressSidebarShortcutWithoutSettling(
+      tester,
+      LogicalKeyboardKey.metaLeft,
+    );
+    await tester.pump();
+
+    expect(find.byKey(_wideSidebarFrameKey), findsOneWidget);
+    expect(_wideSidebarWidth(tester), closeTo(0, 0.1));
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+
+    expect(_wideSidebarWidth(tester), greaterThan(0));
+    expect(_wideSidebarWidth(tester), lessThan(280));
+
+    await tester.pumpAndSettle();
+    expect(_wideSidebarWidth(tester), closeTo(280, 0.1));
+    await _disposeApp(tester);
+  });
+
+  testWidgets('wide sidebar resize handle changes sidebar width', (
+    tester,
+  ) async {
+    await _pumpWideApp(tester);
+
+    expect(_wideSidebarWidth(tester), closeTo(280, 0.1));
+
+    await _dragWideSidebarHandle(
+      tester,
+      _wideSidebarResizeHandleKey,
+      const Offset(80, 0),
+    );
+
+    expect(_wideSidebarWidth(tester), greaterThan(320));
+    expect(find.text('Add task'), findsOneWidget);
+    expect(find.byKey(_wideSidebarEdgeHandleKey), findsNothing);
+    await _disposeApp(tester);
+  });
+
+  testWidgets('wide sidebar collapses when resized below threshold', (
+    tester,
+  ) async {
+    await _pumpWideApp(tester);
+
+    await _dragWideSidebarHandle(
+      tester,
+      _wideSidebarResizeHandleKey,
+      const Offset(-190, 0),
+    );
+
+    expect(find.byKey(_wideSidebarFrameKey), findsNothing);
+    expect(find.text('Add task'), findsNothing);
+    expect(find.byKey(_wideSidebarEdgeHandleKey), findsOneWidget);
+    await _disposeApp(tester);
+  });
+
+  testWidgets('wide sidebar can be restored from left edge handle', (
+    tester,
+  ) async {
+    await _pumpWideApp(tester);
+
+    await _pressSidebarShortcut(tester, LogicalKeyboardKey.metaLeft);
+    expect(find.byKey(_wideSidebarFrameKey), findsNothing);
+    expect(find.byKey(_wideSidebarEdgeHandleKey), findsOneWidget);
+
+    await _dragWideSidebarHandle(
+      tester,
+      _wideSidebarEdgeHandleKey,
+      const Offset(260, 0),
+    );
+
+    expect(find.text('Add task'), findsOneWidget);
+    expect(find.byKey(_wideSidebarEdgeHandleKey), findsNothing);
+    expect(_wideSidebarWidth(tester), greaterThanOrEqualTo(220));
+    await _disposeApp(tester);
+  });
+
+  testWidgets('sidebar keyboard shortcut opens compact drawer', (tester) async {
+    await _pumpCompactApp(tester);
+
+    expect(find.text('Add task'), findsNothing);
+
+    await _pressSidebarShortcut(tester, LogicalKeyboardKey.metaLeft);
+    expect(find.text('Add task'), findsOneWidget);
+
+    await _pressSidebarShortcut(tester, LogicalKeyboardKey.metaLeft);
+    expect(find.text('Add task'), findsNothing);
+    await _disposeApp(tester);
+  });
+
+  testWidgets('top menu button opens compact drawer', (tester) async {
+    await _pumpCompactApp(tester);
+
+    expect(find.byKey(_shellMenuButtonKey), findsOneWidget);
+    expect(find.text('Add task'), findsNothing);
+
+    await tester.tap(find.byKey(_shellMenuButtonKey));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Add task'), findsOneWidget);
+    expect(find.text('Today'), findsAtLeastNWidgets(1));
+    await _disposeApp(tester);
+  });
+
+  testWidgets('compact layout floats active focus player above navigation', (
+    tester,
+  ) async {
+    final now = DateTime.utc(2026, 4, 27, 10);
+    await _pumpCompactApp(
+      tester,
+      activeRun: _activeRun(now),
+      activeInterval: _activeInterval(now),
+    );
+    await tester.tap(find.text('Inbox'));
+    await _pumpFrames(tester);
+
+    final surface = find.byKey(const Key('mini-focus-player-surface'));
+    final decoration =
+        tester.widget<AnimatedContainer>(surface).decoration as BoxDecoration;
+
+    expect(tester.getSize(surface).width, lessThan(600));
+    expect(decoration.borderRadius, BorderRadius.circular(12));
+    expect(decoration.boxShadow, isNotEmpty);
+    await _disposeApp(tester);
+  });
+
+  testWidgets('voice sheet opens above compact timer chrome', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      onboardingCompletedPreferenceKey: true,
+      launchOfferStartedAtPreferenceKey: '2026-01-01T10:00:00.000Z',
+    });
+    final now = DateTime.utc(2026, 4, 27, 10);
+    await _pumpCompactApp(
+      tester,
+      activeRun: _activeRun(now),
+      activeInterval: _activeInterval(now),
+      hasAccountPro: true,
+    );
+    await tester.tap(find.text('Inbox'));
+    await _pumpFrames(tester);
+
+    expect(find.byKey(const Key('mini-focus-player-surface')), findsOneWidget);
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('mobile-bottom-navigation')),
+        matching: find.text('Priority Matrix'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('mobile-bottom-navigation')),
+        matching: find.text('Timeline'),
+      ),
+      findsNothing,
+    );
+    expect(find.text('Inbox task'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Voice quick add'));
+    await _pumpFrames(tester);
+
+    expect(find.text('Voice add'), findsOneWidget);
+    await tester.tap(find.text('Focus'), warnIfMissed: false);
+    await _pumpFrames(tester);
+
+    expect(find.byKey(const Key('voice-mini-panel')), findsOneWidget);
+    expect(find.text('Voice add'), findsNothing);
+    expect(find.text('Inbox task'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('voice-expand')));
+    await _pumpFrames(tester);
+    expect(find.text('Voice add'), findsOneWidget);
+    await _disposeApp(tester);
+  });
+
+  testWidgets('Kanban uses outer 820 breakpoint and hides wide mini player', (
+    tester,
+  ) async {
+    final now = DateTime.utc(2026, 4, 27, 10);
+    await _pumpApp(
+      tester,
+      size: const Size(820, 800),
+      activeRun: _activeRun(now),
+      activeInterval: _activeInterval(now),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('sidebar-destination-/kanban')));
+    await _pumpFrames(tester);
+
+    expect(find.byKey(const Key('kanban-desktop-board')), findsOneWidget);
+    expect(find.byKey(const Key('mini-focus-player-surface')), findsNothing);
+    await _disposeApp(tester);
+  });
+
+  testWidgets(
+    'Kanban is drawer-only and leaves mobile destinations unselected',
+    (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
+      final now = DateTime.utc(2026, 4, 27, 10);
+      await _pumpApp(
+        tester,
+        size: const Size(819, 800),
+        activeRun: _activeRun(now),
+        activeInterval: _activeInterval(now),
+      );
+
+      await tester.tap(find.byKey(_shellMenuButtonKey));
+      await _pumpFrames(tester);
+      await tester.tap(
+        find.byKey(const ValueKey('sidebar-destination-/kanban')),
+      );
+      await _pumpFrames(tester);
+
+      expect(find.byKey(const Key('kanban-mobile-board')), findsOneWidget);
+      expect(find.byKey(const Key('mini-focus-player-surface')), findsNothing);
+      expect(find.byKey(const Key('kanban-shell-add')), findsOneWidget);
+      expect(find.byKey(const Key('kanban-shell-focus')), findsOneWidget);
+      for (final label in const [
+        'Today',
+        'Upcoming',
+        'Focus',
+        'Inbox',
+        'Projects',
+      ]) {
+        final semantics = find.descendant(
+          of: find.byKey(const Key('mobile-bottom-navigation')),
+          matching: find.byWidgetPredicate(
+            (widget) => widget is Semantics && widget.properties.label == label,
+          ),
+        );
+        expect(semantics, findsOneWidget, reason: label);
+        expect(
+          tester.widget<Semantics>(semantics).properties.selected,
+          isFalse,
+          reason: label,
+        );
+      }
+      semanticsHandle.dispose();
+      await _disposeApp(tester);
+    },
+  );
+
+  testWidgets('sidebar projects toggle collapses and expands project list', (
+    tester,
+  ) async {
+    final harness = await _pumpWideApp(tester);
+
+    expect(
+      find.byKey(ValueKey('sidebar-project-${harness.workProjectId}')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('sidebar-projects-toggle')));
+    await _pumpFrames(tester);
+    expect(
+      find.byKey(ValueKey('sidebar-project-${harness.workProjectId}')),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const Key('sidebar-projects-toggle')));
+    await _pumpFrames(tester);
+    expect(
+      find.byKey(ValueKey('sidebar-project-${harness.workProjectId}')),
+      findsOneWidget,
+    );
+    await _disposeApp(tester);
+  });
+
+  testWidgets('sidebar quick add creates a task and closes', (tester) async {
+    final harness = await _pumpWideApp(tester);
+
+    await tester.tap(find.byKey(const Key('sidebar-add-task')));
+    await _pumpFrames(tester);
+    expect(find.byKey(ResizableDialog.containerKey), findsOneWidget);
+    expect(find.byType(QuickAddComposer), findsOneWidget);
+    expect(find.byKey(const Key('sidebar-quick-add-voice')), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const Key('sidebar-quick-add-input')),
+      'Новая задача из сайдбара',
+    );
+    await tester.tap(find.byKey(const Key('sidebar-quick-add-submit')));
+    await _pumpFrames(tester);
+
+    expect(find.byKey(const Key('sidebar-quick-add-input')), findsNothing);
+    final tasks = await harness.db.select(harness.db.tasks).get();
+    expect(
+      tasks.where((task) => task.content == 'Новая задача из сайдбара'),
+      hasLength(1),
+    );
+    await _disposeApp(tester);
+  });
+
+  testWidgets('sidebar quick add suggestions support keyboard selection', (
+    tester,
+  ) async {
+    await _pumpWideApp(tester);
+
+    await tester.tap(find.byKey(const Key('sidebar-add-task')));
+    await _pumpFrames(tester);
+
+    final field = find.byKey(const Key('sidebar-quick-add-input'));
+    await tester.enterText(field, '#W');
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('quick-add-suggestion-#Work')),
+      findsOneWidget,
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+
+    expect(tester.widget<TextField>(field).controller!.text, '#Work ');
+
+    await tester.enterText(field, '#Work @D');
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('quick-add-suggestion-@Design')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('quick-add-suggestion-@Deep Work')),
+      findsOneWidget,
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+
+    expect(
+      tester.widget<TextField>(field).controller!.text,
+      '#Work @"Deep Work" ',
+    );
+    await _disposeApp(tester);
+  });
+
+  testWidgets('sidebar composer waits for the existing voice session', (
+    tester,
+  ) async {
+    final recognizer = _SidebarRecordedRecognizer();
+    final controller = VoiceRecognitionController(
+      recordedRecognizer: recognizer,
+      platformSupport: const VoicePlatformSupport(supportsRecordedSystem: true),
+    );
+    addTearDown(controller.dispose);
+    await _pumpWideApp(
+      tester,
+      hasAccountPro: true,
+      voiceController: controller,
+    );
+    await tester.tap(find.byTooltip('Voice quick add'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Record'));
+    await tester.pump();
+    expect(find.byKey(const Key('voice-recording-countdown')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('voice-collapse')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    await tester.tap(find.byKey(const Key('sidebar-add-task')));
+    await _pumpFrames(tester);
+    final input = find.byKey(const Key('sidebar-quick-add-input'));
+    await tester.enterText(input, 'Keep my typed task');
+    final focus = tester.widget<TextField>(input).focusNode!;
+    await tester.tap(find.byKey(const Key('sidebar-quick-add-voice')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(
+      find.byType(VoiceQuickAddHost, skipOffstage: false),
+      findsOneWidget,
+      reason:
+          'Existing recording: starts=${recognizer.startCalls}, '
+          'cancels=${recognizer.cancelCalls}',
+    );
+    expect(find.byType(VoiceQuickAddHost), findsOneWidget);
+    expect(find.byKey(const Key('voice-recording-countdown')), findsOneWidget);
+    expect(input, findsNothing);
+    expect(focus.canRequestFocus, isFalse);
+    focus.requestFocus();
+    await tester.pump();
+    expect(focus.hasFocus, isFalse);
+    expect(recognizer.startCalls, 1);
+    expect(recognizer.cancelCalls, 0);
+
+    await tester.tap(find.byKey(const Key('voice-collapse')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(input, findsNothing);
+    expect(find.byKey(const Key('voice-mini-recording')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('voice-expand')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.byTooltip('Close'));
+    await _pumpFrames(tester);
+
+    expect(find.byType(VoiceQuickAddHost), findsNothing);
+    expect(input, findsOneWidget);
+    expect(
+      tester.widget<TextField>(input).controller!.text,
+      'Keep my typed task',
+    );
+    expect(recognizer.cancelCalls, 1);
+    await _disposeApp(tester);
+  });
+
+  testWidgets('Back closes sidebar composer without leaving the page', (
+    tester,
+  ) async {
+    await _pumpWideApp(tester);
+    await tester.tap(find.byKey(const ValueKey('sidebar-destination-/inbox')));
+    await _pumpFrames(tester);
+    expect(find.byType(InboxScreen), findsOneWidget);
+    await tester.tap(find.byKey(const Key('sidebar-add-task')));
+    await _pumpFrames(tester);
+    await tester.enterText(
+      find.byKey(const Key('sidebar-quick-add-input')),
+      'Dismiss this draft',
+    );
+
+    await tester.binding.handlePopRoute();
+    await _pumpFrames(tester);
+
+    expect(find.byKey(const Key('sidebar-quick-add-input')), findsNothing);
+    expect(find.byType(InboxScreen), findsOneWidget);
+    expect(find.byType(TodayScreen), findsNothing);
+    await _disposeApp(tester);
+  });
+
+  testWidgets('sidebar quick add microphone opens voice sheet', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      onboardingCompletedPreferenceKey: true,
+      launchOfferStartedAtPreferenceKey: '2026-01-01T10:00:00.000Z',
+    });
+    await _pumpWideApp(tester, hasAccountPro: true);
+
+    await tester.tap(find.byKey(const Key('sidebar-add-task')));
+    await _pumpFrames(tester);
+    await tester.tap(find.byKey(const Key('sidebar-quick-add-voice')));
+    await _pumpFrames(tester);
+
+    expect(find.text('Voice add'), findsOneWidget);
+    await _disposeApp(tester);
+  });
+
+  testWidgets('sidebar quick add microphone opens paywall without Pro', (
+    tester,
+  ) async {
+    await _pumpWideApp(tester);
+
+    await tester.tap(find.byKey(const Key('sidebar-add-task')));
+    await _pumpFrames(tester);
+    await tester.tap(find.byKey(const Key('sidebar-quick-add-voice')));
+    await _pumpFrames(tester);
+
+    expect(find.byKey(const Key('billing-paywall')), findsOneWidget);
+    expect(find.byKey(const Key('billing-paywall-close')), findsOneWidget);
+    expect(find.text('Voice add'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('billing-paywall-close')));
+    await _pumpFrames(tester);
+
+    expect(find.byKey(const Key('billing-paywall')), findsNothing);
+    await _disposeApp(tester);
+  });
+
+  testWidgets('sidebar navigation opens new and project routes', (
+    tester,
+  ) async {
+    final harness = await _pumpWideApp(tester);
+
+    await tester.tap(find.text('Search'));
+    await _pumpFrames(tester);
+    expect(find.text('Search'), findsAtLeastNWidgets(1));
+    expect(find.byType(Dialog), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Reports'));
+    await _pumpFrames(tester);
+    expect(find.text('Reports'), findsAtLeastNWidgets(1));
+
+    await tester.tap(find.byKey(const Key('sidebar-projects-link')));
+    await _pumpFrames(tester);
+    expect(find.byKey(const Key('projects-search-field')), findsOneWidget);
+    expect(find.byKey(const Key('projects-add-button')), findsOneWidget);
+
+    await tester.tap(find.text('Browse'));
+    await _pumpFrames(tester);
+    expect(find.text('Browse'), findsAtLeastNWidgets(1));
+
+    final projectLink = find.byKey(
+      ValueKey('sidebar-project-${harness.workProjectId}'),
+    );
+    await tester.ensureVisible(projectLink);
+    await _pumpFrames(tester);
+    await tester.tap(projectLink);
+    await _pumpFrames(tester);
+    expect(find.text('Project task'), findsOneWidget);
+    expect(find.text('Inbox task'), findsNothing);
+    expect(find.text('Work'), findsAtLeastNWidgets(2));
+    await _disposeApp(tester);
+  });
+
+  testWidgets('settings language selection switches UI to Russian', (
+    tester,
+  ) async {
+    await _pumpWideApp(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('sidebar-destination-/settings')),
+    );
+    await _pumpFrames(tester);
+    await tester.tap(find.widgetWithText(ShadButton, 'General'));
+    await tester.pumpAndSettle();
+    final languageSelect = find.byType(ShadSelect<AppLanguage>);
+    expect(languageSelect, findsOneWidget);
+    expect(find.text('Language'), findsAtLeastNWidgets(1));
+
+    await tester.tap(languageSelect);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Русский').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Настройки'), findsAtLeastNWidgets(1));
+    expect(find.text('Добавить задачу'), findsOneWidget);
+    await _disposeApp(tester);
+  });
+
+  testWidgets('settings shortcut button opens the shortcut route', (
+    tester,
+  ) async {
+    await _pumpWideApp(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('sidebar-destination-/settings')),
+    );
+    await _pumpFrames(tester);
+    await tester.tap(find.widgetWithText(ShadButton, 'General'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const Key('settings-shortcuts-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('settings-shortcuts-button')));
+    await _pumpFrames(tester);
+
+    expect(find.byType(KeyboardShortcutsScreen), findsOneWidget);
+    expect(find.byKey(const Key('shortcut-row-toggleSidebar')), findsOneWidget);
+    await _disposeApp(tester);
+  });
+
+  testWidgets('settings theme selection switches between dark and light', (
+    tester,
+  ) async {
+    await _pumpWideApp(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('sidebar-destination-/settings')),
+    );
+    await _pumpFrames(tester);
+    await tester.tap(find.widgetWithText(ShadButton, 'Appearance'));
+    await tester.pumpAndSettle();
+    final settings = find.widgetWithText(ChoiceChip, 'Dark');
+    expect(settings, findsOneWidget);
+
+    await tester.tap(settings);
+    await tester.pumpAndSettle();
+    expect(Theme.of(tester.element(settings)).brightness, Brightness.dark);
+
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Light'));
+    await tester.pumpAndSettle();
+    expect(Theme.of(tester.element(settings)).brightness, Brightness.light);
+    await _disposeApp(tester);
+  });
+
+  testWidgets('system theme follows platform brightness', (tester) async {
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+
+    await _pumpWideApp(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('sidebar-destination-/settings')),
+    );
+    await _pumpFrames(tester);
+    await tester.tap(find.widgetWithText(ShadButton, 'Appearance'));
+    await tester.pumpAndSettle();
+    final settings = find.widgetWithText(ChoiceChip, 'Dark');
+
+    expect(settings, findsOneWidget);
+    expect(Theme.of(tester.element(settings)).brightness, Brightness.dark);
+    await _disposeApp(tester);
+  });
+
+  testWidgets('projects screen searches and switches to archived projects', (
+    tester,
+  ) async {
+    final harness = await _pumpWideApp(tester);
+
+    await tester.tap(find.byKey(const Key('sidebar-projects-link')));
+    await _pumpFrames(tester);
+
+    expect(find.byKey(const Key('projects-search-field')), findsOneWidget);
+    expect(find.byKey(const Key('projects-archived-switch')), findsOneWidget);
+    expect(find.byKey(const Key('projects-add-button')), findsOneWidget);
+    expect(
+      find.byKey(ValueKey('projects-screen-project-${harness.workProjectId}')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        ValueKey('projects-screen-project-${harness.archivedProjectId}'),
+      ),
+      findsNothing,
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('projects-search-field')),
+      'zzz',
+    );
+    await _pumpFrames(tester);
+    expect(
+      find.byKey(ValueKey('projects-screen-project-${harness.workProjectId}')),
+      findsNothing,
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('projects-search-field')),
+      'Work',
+    );
+    await _pumpFrames(tester);
+    expect(
+      find.byKey(ValueKey('projects-screen-project-${harness.workProjectId}')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('projects-archived-switch')));
+    await _pumpFrames(tester);
+    expect(
+      find.byKey(ValueKey('projects-screen-project-${harness.workProjectId}')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        ValueKey('projects-screen-project-${harness.archivedProjectId}'),
+      ),
+      findsOneWidget,
+    );
+    await _disposeApp(tester);
+  });
+
+  testWidgets('shared project badge follows the project name', (tester) async {
+    final harness = await _pumpWideApp(
+      tester,
+      workProjectScopeId: _workProjectScopeId,
+    );
+
+    _expectBadgeFollowsName(
+      tester,
+      row: find.byKey(ValueKey('sidebar-project-${harness.workProjectId}')),
+      name: 'Work',
+      count: '1',
+    );
+
+    await tester.tap(find.byKey(const Key('sidebar-projects-link')));
+    await _pumpFrames(tester);
+
+    _expectBadgeFollowsName(
+      tester,
+      row: find.byKey(
+        ValueKey('projects-screen-project-${harness.workProjectId}'),
+      ),
+      name: 'Work',
+      count: '1',
+    );
+    await _disposeApp(tester);
+  });
+
+  testWidgets('shared project badge stays beside a truncated name', (
+    tester,
+  ) async {
+    final harness = await _pumpWideApp(
+      tester,
+      workProjectName: _longProjectName,
+      workProjectScopeId: _workProjectScopeId,
+    );
+
+    final sidebarRow = find.byKey(
+      ValueKey('sidebar-project-${harness.workProjectId}'),
+    );
+    final sidebarName = tester.getRect(
+      find.descendant(of: sidebarRow, matching: find.text(_longProjectName)),
+    );
+    expect(sidebarName.width, lessThan(tester.getSize(sidebarRow).width));
+    _expectBadgeFollowsName(
+      tester,
+      row: sidebarRow,
+      name: _longProjectName,
+      count: '1',
+      nameFits: false,
+    );
+
+    await tester.tap(find.byKey(const Key('sidebar-projects-link')));
+    await _pumpFrames(tester);
+
+    _expectBadgeFollowsName(
+      tester,
+      row: find.byKey(
+        ValueKey('projects-screen-project-${harness.workProjectId}'),
+      ),
+      name: _longProjectName,
+      count: '1',
+    );
+    await _disposeApp(tester);
+  });
+
+  testWidgets('a project without a scope renders no badge', (tester) async {
+    final harness = await _pumpWideApp(tester);
+
+    _expectNoBadge(
+      tester,
+      find.byKey(ValueKey('sidebar-project-${harness.workProjectId}')),
+    );
+
+    await tester.tap(find.byKey(const Key('sidebar-projects-link')));
+    await _pumpFrames(tester);
+
+    _expectNoBadge(
+      tester,
+      find.byKey(ValueKey('projects-screen-project-${harness.workProjectId}')),
+    );
+    await _disposeApp(tester);
+  });
+}
+
+/// Asserts the shared badge sits immediately after the project name and not
+/// next to the trailing task count.
+void _expectBadgeFollowsName(
+  WidgetTester tester, {
+  required Finder row,
+  required String name,
+  required String count,
+  bool nameFits = true,
+}) {
+  final badge = find.descendant(
+    of: row,
+    matching: find.byIcon(LucideIcons.users),
+  );
+  expect(badge, findsOneWidget);
+  expect(
+    find.descendant(of: row, matching: find.byIcon(LucideIcons.triangleAlert)),
+    findsNothing,
+  );
+  expect(tester.getSize(badge), const Size(14, 14));
+
+  final nameRect = tester.getRect(
+    find.descendant(of: row, matching: find.text(name)),
+  );
+  final badgeRect = tester.getRect(badge);
+  final countRect = tester.getRect(
+    find.descendant(of: row, matching: find.text(count)),
+  );
+
+  // Only the 4 px gap separates the name from its badge, whether the name
+  // fits or is ellipsized.
+  expect(badgeRect.left - nameRect.right, closeTo(4, 0.1));
+  expect(badgeRect.center.dy, closeTo(nameRect.center.dy, 1));
+  // Once the name fills the row, the badge still precedes the count, which
+  // keeps its trailing position; a name that fits leaves the count far away.
+  expect(badgeRect.right, lessThanOrEqualTo(countRect.left));
+  if (nameFits) {
+    expect(countRect.left - badgeRect.right, greaterThan(20));
+  }
+  // The badge stays inside the row instead of being pushed out of it.
+  expect(badgeRect.right, lessThanOrEqualTo(tester.getRect(row).right));
+}
+
+void _expectNoBadge(WidgetTester tester, Finder row) {
+  expect(
+    find.descendant(of: row, matching: find.byIcon(LucideIcons.users)),
+    findsNothing,
+  );
+  expect(
+    find.descendant(of: row, matching: find.byIcon(LucideIcons.triangleAlert)),
+    findsNothing,
+  );
+}
+
+class _TestApp extends ConsumerWidget {
+  const _TestApp();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
+    final language = ref.watch(appLanguageProvider);
+    final themeMode = ref.watch(appThemeModeProvider);
+    return MaterialApp.router(
+      builder: testAppBuilder,
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: themeMode.themeMode,
+      routerConfig: router,
+      locale: language.locale,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+    );
+  }
+}
+
+class _SidebarHarness {
+  const _SidebarHarness({
+    required this.db,
+    required this.workProjectId,
+    required this.archivedProjectId,
+  });
+
+  final AppDatabase db;
+  final String workProjectId;
+  final String archivedProjectId;
+}
+
+Future<_SidebarHarness> _pumpWideApp(
+  WidgetTester tester, {
+  bool hasAccountPro = false,
+  VoiceRecognitionController? voiceController,
+  String workProjectName = 'Work',
+  String? workProjectScopeId,
+}) async {
+  return _pumpApp(
+    tester,
+    size: const Size(1200, 800),
+    hasAccountPro: hasAccountPro,
+    voiceController: voiceController,
+    workProjectName: workProjectName,
+    workProjectScopeId: workProjectScopeId,
+  );
+}
+
+Future<_SidebarHarness> _pumpCompactApp(
+  WidgetTester tester, {
+  FocusRunItem? activeRun,
+  FocusIntervalItem? activeInterval,
+  bool hasAccountPro = false,
+}) async {
+  return _pumpApp(
+    tester,
+    size: const Size(600, 800),
+    activeRun: activeRun,
+    activeInterval: activeInterval,
+    hasAccountPro: hasAccountPro,
+  );
+}
+
+Future<_SidebarHarness> _pumpApp(
+  WidgetTester tester, {
+  required Size size,
+  FocusRunItem? activeRun,
+  FocusIntervalItem? activeInterval,
+  bool hasAccountPro = false,
+  VoiceRecognitionController? voiceController,
+  String workProjectName = 'Work',
+  String? workProjectScopeId,
+}) async {
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+
+  final db = AppDatabase(NativeDatabase.memory());
+  addTearDown(db.close);
+  await db.ensureSeedData();
+  final createdAt = DateTime.utc(2026);
+  const workProjectId = 'work';
+  const archivedProjectId = 'archived-work';
+  final project = ProjectItem(
+    id: workProjectId,
+    userId: localUserId,
+    name: workProjectName,
+    scopeId: workProjectScopeId,
+    color: '#3B6EA8',
+    orderKey: 'b',
+    createdAt: createdAt,
+    updatedAt: createdAt,
+  );
+  final archivedProject = ProjectItem(
+    id: archivedProjectId,
+    userId: localUserId,
+    name: 'Archived Work',
+    color: '#8B5CF6',
+    orderKey: 'c',
+    isArchived: true,
+    createdAt: createdAt,
+    updatedAt: createdAt,
+  );
+  final labels = [
+    LabelItem(
+      id: 'design',
+      userId: localUserId,
+      name: 'Design',
+      orderKey: 'a',
+      createdAt: createdAt,
+      updatedAt: createdAt,
+    ),
+    LabelItem(
+      id: 'deep-work',
+      userId: localUserId,
+      name: 'Deep Work',
+      orderKey: 'b',
+      createdAt: createdAt,
+      updatedAt: createdAt,
+    ),
+  ];
+  final inboxTasks = [_task('inbox-1', 'Inbox task', createdAt: createdAt)];
+  final todayTasks = [
+    _task('today-1', 'Today task 1', createdAt: createdAt),
+    _task('today-2', 'Today task 2', createdAt: createdAt),
+  ];
+  final upcomingTasks = [
+    _task('upcoming-1', 'Upcoming task 1', createdAt: createdAt),
+    _task('upcoming-2', 'Upcoming task 2', createdAt: createdAt),
+    _task('upcoming-3', 'Upcoming task 3', createdAt: createdAt),
+  ];
+  final projectTasks = [
+    _task(
+      'project-1',
+      'Project task',
+      projectId: workProjectId,
+      createdAt: createdAt,
+    ),
+  ];
+
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        appStartupProvider.overrideWith((ref) => Future<void>.value()),
+        appStartupViewModelProvider.overrideWith(_ReadyAppStartupViewModel.new),
+        shortcutTargetPlatformProvider.overrideWithValue(TargetPlatform.macOS),
+        taskStartNotificationCoordinatorProvider.overrideWith((ref) {}),
+        reengagementNotificationCoordinatorProvider.overrideWith((ref) {}),
+        clockProvider.overrideWithValue(
+          FixedClock(DateTime.utc(2026, 1, 2, 11)),
+        ),
+        appDatabaseProvider.overrideWithValue(db),
+        focusRepositoryProvider.overrideWithValue(FakeFocusRepository()),
+        applePurchasesSupportedProvider.overrideWithValue(false),
+        billingAccountEntitlementProvider.overrideWithValue(hasAccountPro),
+        if (voiceController != null)
+          voiceRecognitionControllerProvider.overrideWithValue(voiceController),
+        accountProfileProvider.overrideWith(
+          (ref) => const PomodoistAccountProfile(
+            id: localUserId,
+            displayName: 'Local User',
+          ),
+        ),
+        tasksByQueryProvider.overrideWith((ref, query) {
+          return Stream.value(switch (query.kind) {
+            TaskQueryKind.inbox => inboxTasks,
+            TaskQueryKind.today => todayTasks,
+            TaskQueryKind.upcoming => upcomingTasks,
+            TaskQueryKind.day => [
+              ...todayTasks,
+              ...upcomingTasks,
+            ].where((task) => task.dueDate == query.date).toList(),
+            TaskQueryKind.project =>
+              query.projectId == workProjectId
+                  ? projectTasks
+                  : const <TaskItem>[],
+            TaskQueryKind.label => const <TaskItem>[],
+            TaskQueryKind.search => [
+              ...inboxTasks,
+              ...todayTasks,
+              ...upcomingTasks,
+              ...projectTasks,
+            ],
+            TaskQueryKind.all => [
+              ...inboxTasks,
+              ...todayTasks,
+              ...upcomingTasks,
+              ...projectTasks,
+            ],
+            TaskQueryKind.completed => const <TaskItem>[],
+          });
+        }),
+        projectsProvider.overrideWith(
+          (ref) => Stream.value([project, archivedProject]),
+        ),
+        labelsProvider.overrideWith((ref) => Stream.value(labels)),
+        productivitySummaryProvider.overrideWith(
+          (ref) => Stream.value(
+            ProductivitySummary(
+              completedTasks: 0,
+              completedFocusIntervals: 0,
+              totalFocusSeconds: 0,
+              plannedFocusIntervals: 2,
+              openTasks: 7,
+              allTimeCompletedTasks: 0,
+              allTimeCompletedFocusIntervals: 0,
+            ),
+          ),
+        ),
+        achievementsProvider.overrideWith(
+          (ref) => Stream.value(const <AchievementItem>[]),
+        ),
+        activeFocusRunProvider.overrideWith(
+          (ref) => Stream<FocusRunItem?>.value(activeRun),
+        ),
+        activeFocusIntervalProvider.overrideWith(
+          (ref) => Stream<FocusIntervalItem?>.value(activeInterval),
+        ),
+      ],
+      child: const _TestApp(),
+    ),
+  );
+  await _pumpFrames(tester);
+  await tester.pump();
+
+  return _SidebarHarness(
+    db: db,
+    workProjectId: workProjectId,
+    archivedProjectId: archivedProjectId,
+  );
+}
+
+class _SidebarRecordedRecognizer extends RecordedVoiceRecognizer {
+  int startCalls = 0;
+  int cancelCalls = 0;
+
+  @override
+  Future<void> start(VoiceRecognitionConfig config) async => startCalls++;
+
+  @override
+  Future<VoiceRecognitionTranscript> stop(
+    VoiceRecognitionConfig config,
+  ) async => const VoiceRecognitionTranscript(text: 'Buy milk');
+
+  @override
+  Future<void> cancel() async => cancelCalls++;
+
+  @override
+  void dispose() {}
+}
+
+Future<void> _pressSidebarShortcut(
+  WidgetTester tester,
+  LogicalKeyboardKey modifier,
+) async {
+  await _pressSidebarShortcutWithoutSettling(tester, modifier);
+  await tester.pumpAndSettle();
+}
+
+void _sendRawMacShortcut({required int keyCode, required String character}) {
+  final data = RawKeyEventDataMacOs(
+    characters: character,
+    charactersIgnoringModifiers: character,
+    keyCode: keyCode,
+    modifiers: RawKeyEventDataMacOs.modifierCommand,
+  );
+  RawKeyboard.instance.handleRawKeyEvent(RawKeyDownEvent(data: data));
+  RawKeyboard.instance.handleRawKeyEvent(RawKeyUpEvent(data: data));
+}
+
+Future<void> _pressSidebarShortcutWithoutSettling(
+  WidgetTester tester,
+  LogicalKeyboardKey modifier,
+) async {
+  await _pressShortcutWithoutSettling(
+    tester,
+    modifier,
+    LogicalKeyboardKey.keyB,
+  );
+}
+
+Future<void> _pressShortcut(
+  WidgetTester tester,
+  LogicalKeyboardKey modifier,
+  LogicalKeyboardKey key,
+) async {
+  await _pressShortcutWithoutSettling(tester, modifier, key);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _pressShortcutWithShift(
+  WidgetTester tester,
+  LogicalKeyboardKey modifier,
+  LogicalKeyboardKey key,
+) async {
+  await tester.sendKeyDownEvent(modifier);
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+  await tester.sendKeyDownEvent(key);
+  await tester.sendKeyUpEvent(key);
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+  await tester.sendKeyUpEvent(modifier);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _pressShortcutWithoutSettling(
+  WidgetTester tester,
+  LogicalKeyboardKey modifier,
+  LogicalKeyboardKey key,
+) async {
+  await tester.sendKeyDownEvent(modifier);
+  await tester.sendKeyDownEvent(key);
+  await tester.sendKeyUpEvent(key);
+  await tester.sendKeyUpEvent(modifier);
+}
+
+Future<void> _dragWideSidebarHandle(
+  WidgetTester tester,
+  Key handleKey,
+  Offset offset,
+) async {
+  final gesture = await tester.startGesture(
+    tester.getCenter(find.byKey(handleKey)),
+  );
+  await tester.pump();
+  await gesture.moveBy(offset);
+  await tester.pump();
+  await gesture.up();
+  await tester.pumpAndSettle();
+}
+
+double _wideSidebarWidth(WidgetTester tester) {
+  return tester.getSize(find.byKey(_wideSidebarFrameKey)).width;
+}
+
+Future<void> _pumpFrames(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 250));
+  for (var pump = 0; pump < 8; pump++) {
+    await tester.pump();
+  }
+}
+
+Future<void> _disposeApp(WidgetTester tester) async {
+  await tester.pumpWidget(const SizedBox.shrink());
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 1));
+}
+
+TaskItem _task(
+  String id,
+  String content, {
+  String projectId = inboxProjectId,
+  required DateTime createdAt,
+}) {
+  return TaskItem(
+    id: id,
+    userId: localUserId,
+    content: content,
+    projectId: projectId,
+    priority: 4,
+    status: 'open',
+    completedFocusIntervals: 0,
+    totalFocusSeconds: 0,
+    orderKey: id,
+    isDeleted: false,
+    createdAt: createdAt,
+    updatedAt: createdAt,
+  );
+}
+
+FocusRunItem _activeRun(DateTime now) {
+  return FocusRunItem(
+    id: 'run',
+    userId: localUserId,
+    presetId: 'preset',
+    status: 'active',
+    startedAt: now,
+    targetWorkIntervals: 2,
+    completedWorkIntervals: 0,
+    createdAt: now,
+    updatedAt: now,
+  );
+}
+
+FocusIntervalItem _activeInterval(DateTime now) {
+  return FocusIntervalItem(
+    id: 'interval',
+    runId: 'run',
+    type: 'work',
+    status: 'running',
+    plannedSeconds: 25 * 60,
+    startedAt: now.subtract(const Duration(minutes: 1)),
+    pausedTotalSeconds: 0,
+    sequenceNumber: 1,
+    createdAt: now,
+    updatedAt: now,
+  );
+}
+
+class _ReadyAppStartupViewModel extends AppStartupViewModel {
+  @override
+  Future<void> build() async {}
+}

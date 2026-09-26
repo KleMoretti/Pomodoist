@@ -1,0 +1,874 @@
+import 'package:pomodoist/domain/models/settings/task_preferences.dart';
+import 'package:pomodoist/utils/result.dart';
+import 'package:pomodoist/data/repositories/kanban/kanban_repository.dart';
+import 'package:pomodoist/data/repositories/projects/project_repository.dart';
+import 'package:pomodoist/data/repositories/tasks/task_repository.dart';
+import 'support/test_app.dart';
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:drift/drift.dart' hide isNotNull, isNull;
+import 'package:drift/native.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:pomodoist/config/providers.dart';
+import 'package:pomodoist/ui/core/themes/app_theme.dart';
+import 'package:pomodoist/utils/clock.dart';
+import 'package:pomodoist/data/services/local/database/app_database.dart'
+    hide KanbanSettings;
+import 'package:pomodoist/domain/models/focus/focus_models.dart';
+import 'package:pomodoist/domain/use_cases/quick_add/quick_add_use_case.dart';
+import 'package:pomodoist/domain/models/planning/quick_add_parser.dart';
+import 'package:pomodoist/data/repositories/kanban/kanban_repository_impl.dart';
+import 'package:pomodoist/domain/models/tasks/task_models.dart';
+import 'package:pomodoist/ui/tasks/view_models/kanban_board_controller.dart';
+import 'package:pomodoist/ui/tasks/widgets/kanban_screen.dart';
+import 'package:pomodoist/ui/core/localization/app_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+void main() {
+  setUpAll(loadTestAppResources);
+  testWidgets('820 desktop columns adaptively span the full board width', (
+    tester,
+  ) async {
+    final harness = await _pumpKanban(tester, width: 820);
+
+    expect(find.byKey(const Key('kanban-desktop-board')), findsOneWidget);
+    expect(find.byKey(const Key('kanban-mobile-board')), findsNothing);
+    expect(
+      tester
+          .getSize(find.byKey(const Key('kanban-column-kanban-status-todo-v1')))
+          .width,
+      184,
+    );
+    expect(
+      tester
+          .getSize(
+            find.byKey(const Key('kanban-column-kanban-status-in-progress-v1')),
+          )
+          .width,
+      184,
+    );
+    expect(
+      find.byKey(const Key('kanban-drag-handle-task-focus')),
+      findsOneWidget,
+    );
+    expect(harness.kanban.moves, isEmpty);
+  });
+
+  testWidgets('819 uses one-open mobile accordion with focus expanded', (
+    tester,
+  ) async {
+    await _pumpKanban(tester, width: 819);
+
+    expect(find.byKey(const Key('kanban-mobile-board')), findsOneWidget);
+    expect(find.byKey(const Key('kanban-desktop-board')), findsNothing);
+    expect(find.byKey(const Key('kanban-section-expanded')), findsOneWidget);
+    expect(
+      find.byKey(const Key('kanban-long-press-task-focus')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const Key('kanban-section-header-kanban-status-todo-v1')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('kanban-section-expanded')), findsOneWidget);
+    expect(find.byKey(const Key('kanban-long-press-task-focus')), findsNothing);
+    expect(
+      find.byKey(const Key('kanban-add-kanban-status-todo-v1')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('menu move and column add inherit the selected status', (
+    tester,
+  ) async {
+    final harness = await _pumpKanban(tester, width: 1200);
+
+    await tester.tap(find.byKey(const Key('kanban-card-menu-task-focus')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Move to To do'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(harness.kanban.moves.single.statusId, kanbanStatusTodoId);
+
+    await tester.tap(find.byKey(const Key('kanban-add-kanban-status-todo-v1')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('kanban-add-voice')), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const Key('kanban-add-input')),
+      'Added in Todo',
+    );
+    await tester.tap(find.byKey(const Key('kanban-add-submit')));
+    await tester.pumpAndSettle();
+
+    expect(harness.tasks.created.single.content, 'Added in Todo');
+    expect(harness.tasks.created.single.kanbanStatusId, kanbanStatusTodoId);
+    expect(harness.tasks.created.single.projectId, inboxProjectId);
+  });
+
+  testWidgets('renders one column per status with two projects on the board', (
+    tester,
+  ) async {
+    final board = await _mixedScopeBoard(tester);
+
+    await _pumpKanban(tester, width: 1200, snapshot: board);
+
+    expect(board.statuses, hasLength(4));
+    for (final statusId in const [
+      kanbanStatusBacklogId,
+      kanbanStatusTodoId,
+      kanbanStatusInProgressId,
+      kanbanStatusDoneId,
+    ]) {
+      expect(find.byKey(Key('kanban-column-$statusId')), findsOneWidget);
+    }
+    expect(
+      find.byKey(const Key('kanban-column-scope:kanban-status-backlog-v1')),
+      findsNothing,
+    );
+    expect(
+      find.byWidgetPredicate((widget) {
+        final key = widget.key;
+        return key is ValueKey<String> && key.value.contains('scope:');
+      }),
+      findsNothing,
+    );
+    expect(find.text('Personal root'), findsOneWidget);
+    expect(find.text('Shared root'), findsOneWidget);
+  });
+
+  testWidgets('renders the shared card before its status labels are loaded', (
+    tester,
+  ) async {
+    final board = await _mixedScopeBoard(tester, mirrorStatusLabels: false);
+
+    await _pumpKanban(tester, width: 1200, snapshot: board);
+
+    expect(board.statuses, hasLength(4));
+    expect(find.text('Shared root'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(Key('kanban-column-$kanbanStatusInProgressId')),
+        matching: find.text('Shared root'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('selecting only a shared project without status labels shows an '
+      'empty board', (tester) async {
+    final board = await _mixedScopeBoard(
+      tester,
+      mirrorStatusLabels: false,
+      selectPersonalProject: false,
+    );
+    expect(board.statuses, isEmpty);
+
+    await _pumpKanban(tester, width: 390, snapshot: board);
+
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const Key('kanban-empty-board')), findsOneWidget);
+    expect(
+      find.byWidgetPredicate((widget) {
+        final key = widget.key;
+        return key is ValueKey<String> &&
+            key.value.startsWith('kanban-column-');
+      }),
+      findsNothing,
+    );
+
+    // The board has no Backlog column to add into, so the control that needs one
+    // stays disabled instead of dereferencing a status that is not there.
+    await tester.tap(find.byKey(const Key('kanban-global-add')));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const Key('kanban-add-input')), findsNothing);
+  });
+
+  testWidgets('highlights a merged column focused through a member status', (
+    tester,
+  ) async {
+    final board = await _mixedScopeBoard(
+      tester,
+      focusStatusLabelId: 'scope:$kanbanStatusInProgressId',
+    );
+    expect(
+      board.settings.focusStatusLabelId,
+      'scope:$kanbanStatusInProgressId',
+    );
+
+    await _pumpKanban(tester, width: 1200, snapshot: board);
+
+    final focused = _columnBackground(tester, kanbanStatusInProgressId);
+    for (final statusId in const [
+      kanbanStatusBacklogId,
+      kanbanStatusTodoId,
+      kanbanStatusDoneId,
+    ]) {
+      expect(_columnBackground(tester, statusId), isNot(focused));
+    }
+  });
+
+  testWidgets('expands the merged column that holds a member focus status', (
+    tester,
+  ) async {
+    final board = await _mixedScopeBoard(
+      tester,
+      focusStatusLabelId: 'scope:$kanbanStatusInProgressId',
+    );
+
+    await _pumpKanban(tester, width: 390, snapshot: board);
+
+    expect(
+      find.byKey(const Key('kanban-add-kanban-status-in-progress-v1')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('hiding Done keeps card completion available', (tester) async {
+    final harness = await _pumpKanban(tester, width: 1200);
+
+    await tester.tap(find.byKey(const Key('kanban-filter-toggle')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(Key('kanban-column-$kanbanStatusDoneId')), findsNothing);
+    expect(
+      tester
+          .getSize(find.byKey(const Key('kanban-column-kanban-status-todo-v1')))
+          .width,
+      376,
+    );
+    expect(find.byKey(const Key('kanban-card-task-focus')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byKey(const Key('kanban-card-menu-task-focus')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mark complete'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(harness.kanban.moves.single.statusId, kanbanStatusDoneId);
+  });
+
+  testWidgets('completion lands the card in Done with a brief highlight', (
+    tester,
+  ) async {
+    final harness = await _pumpKanban(tester, width: 1200);
+
+    await tester.tap(find.byKey(const Key('kanban-card-menu-task-focus')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mark complete'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(harness.kanban.moves.single.statusId, kanbanStatusDoneId);
+    expect(
+      find.descendant(
+        of: find.byKey(Key('kanban-column-$kanbanStatusDoneId')),
+        matching: find.byKey(const Key('kanban-card-task-focus')),
+      ),
+      findsOneWidget,
+    );
+    expect(_motionHighlight(tester, 'task-focus').a, greaterThan(0));
+
+    await tester.pump(const Duration(milliseconds: 180));
+    expect(_motionHighlight(tester, 'task-focus').a, 0);
+  });
+
+  testWidgets('desktop project selector shows all available projects', (
+    tester,
+  ) async {
+    const importantProjectId = 'project-important';
+    await _pumpKanban(
+      tester,
+      width: 1200,
+      snapshot: _snapshot(
+        availableProjects: [
+          _project(inboxProjectId, 'Inbox'),
+          _project(importantProjectId, 'Important'),
+          _project('project-work', 'Work'),
+        ],
+        selectedProjectIds: const [inboxProjectId, importantProjectId],
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('kanban-project-selector')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('kanban-project-option-project-important')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('320px Arabic large text stays RTL and overflow-free', (
+    tester,
+  ) async {
+    await _pumpKanban(
+      tester,
+      width: 320,
+      locale: const Locale('ar'),
+      textScale: 1.45,
+    );
+
+    expect(
+      Directionality.of(tester.element(find.byType(KanbanScreen))),
+      TextDirection.rtl,
+    );
+    expect(find.text('كانبان'), findsOneWidget);
+    expect(find.text('قيد التنفيذ'), findsOneWidget);
+    expect(find.byKey(const Key('kanban-mobile-board')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('390px large text preserves one expanded section', (
+    tester,
+  ) async {
+    await _pumpKanban(tester, width: 390, textScale: 1.8);
+
+    expect(find.byKey(const Key('kanban-section-expanded')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('active focus card shows progress and a stop control', (
+    tester,
+  ) async {
+    await _pumpKanban(tester, width: 390, activeFocus: true);
+
+    expect(
+      find.byKey(const Key('kanban-active-focus-progress')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('kanban-stop-focus')), findsOneWidget);
+    expect(find.text('20:00 / 25:00'), findsOneWidget);
+  });
+
+  testWidgets('timed card colors its schedule and announces its status', (
+    tester,
+  ) async {
+    final now = DateTime.utc(2026, 7, 10, 10);
+    final semantics = tester.ensureSemantics();
+    await _pumpKanban(
+      tester,
+      width: 1200,
+      taskSchedule: TaskSchedule.timed(
+        start: now,
+        end: now.add(const Duration(minutes: 30)),
+      ),
+      now: now,
+      activeFocus: true,
+    );
+
+    final label = find.byKey(
+      const ValueKey('kanban-task-time-label-task-focus'),
+    );
+    expect(
+      tester.widget<Text>(label).style?.color,
+      AppTheme.light().extension<AppThemePalette>()!.success,
+    );
+    expect(
+      tester
+          .getSemantics(
+            find.byKey(const ValueKey('kanban-task-time-meta-task-focus')),
+          )
+          .label,
+      contains('In focus'),
+    );
+    semantics.dispose();
+  });
+
+  testWidgets(
+    'timed card parent semantics match non-default display settings and status',
+    (tester) async {
+      final now = DateTime.utc(2026, 7, 10, 10);
+      SharedPreferences.setMockInitialValues({
+        taskTimeDisplayModePreferenceKey: 'range',
+        quickAddDefaultTimedBlockMinutesPreferenceKey: 45,
+      });
+      addTearDown(() => SharedPreferences.setMockInitialValues({}));
+      final semantics = tester.ensureSemantics();
+
+      await _pumpKanban(
+        tester,
+        width: 1200,
+        textScale: 1.1,
+        taskSchedule: TaskSchedule.timed(
+          start: now,
+          end: now.add(const Duration(minutes: 30)),
+        ),
+        now: now,
+      );
+
+      final card = find.byKey(
+        const ValueKey('kanban-card-semantics-task-focus'),
+      );
+      expect(card, findsOneWidget);
+      final visibleSchedule = tester
+          .widget<Text>(
+            find.byKey(const ValueKey('kanban-task-time-label-task-focus')),
+          )
+          .data!;
+      expect(visibleSchedule, contains('-'));
+      final label = tester.getSemantics(card).label;
+      expect(label, contains(visibleSchedule));
+      expect(label, contains('In progress'));
+      semantics.dispose();
+    },
+  );
+
+  test(
+    'an older failed move cannot roll back a newer optimistic move',
+    () async {
+      final repository = _ControlledKanbanRepository();
+      final controller = KanbanBoardController(repository);
+      addTearDown(controller.dispose);
+
+      final first = controller.moveTask('task', statusId: kanbanStatusTodoId);
+      final second = controller.moveTask(
+        'task',
+        statusId: kanbanStatusInProgressId,
+      );
+      repository.completers.first.completeError(StateError('old failure'));
+      await expectLater(first, throwsStateError);
+
+      expect(controller.overrides['task']?.statusId, kanbanStatusInProgressId);
+
+      repository.completers.last.complete();
+      await second;
+    },
+  );
+}
+
+Color _motionHighlight(WidgetTester tester, String taskId) {
+  final decoration =
+      tester
+              .widget<DecoratedBox>(
+                find.byKey(Key('task-motion-highlight-$taskId')),
+              )
+              .decoration
+          as BoxDecoration;
+  return decoration.color!;
+}
+
+Future<_KanbanHarness> _pumpKanban(
+  WidgetTester tester, {
+  required double width,
+  Locale locale = const Locale('en'),
+  double textScale = 1,
+  bool activeFocus = false,
+  KanbanBoardSnapshot? snapshot,
+  TaskSchedule? taskSchedule,
+  DateTime? now,
+}) async {
+  tester.view.physicalSize = Size(width, 900);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+  final board = snapshot ?? _snapshot(taskSchedule: taskSchedule);
+  final taskNow = now ?? DateTime.utc(2026, 7, 10, 10);
+  final kanban = _FakeKanbanRepository(board);
+  final tasks = _FakeTaskRepository();
+  final projects = _FakeProjectRepository(board.availableProjects);
+  final quickAdd = QuickAddUseCase(
+    parser: const QuickAddParser(),
+    taskRepository: tasks,
+    projectRepository: projects,
+  );
+
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        kanbanRepositoryProvider.overrideWithValue(kanban),
+        quickAddUseCaseProvider.overrideWithValue(quickAdd),
+        activeFocusRunProvider.overrideWith(
+          (ref) =>
+              Stream<FocusRunItem?>.value(activeFocus ? _activeRun() : null),
+        ),
+        activeFocusIntervalProvider.overrideWith(
+          (ref) => Stream<FocusIntervalItem?>.value(
+            activeFocus ? _activeInterval() : null,
+          ),
+        ),
+        activeFocusRemainingProvider.overrideWith(
+          (ref) => activeFocus ? const Duration(minutes: 20) : null,
+        ),
+        clockProvider.overrideWithValue(FixedClock(taskNow)),
+        taskTimeTickerProvider.overrideWith((ref) => Stream.value(taskNow)),
+      ],
+      child: MaterialApp(
+        theme: AppTheme.light(),
+        locale: locale,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const Scaffold(body: KanbanScreen()),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(textScale)),
+          child: Builder(builder: (context) => testAppBuilder(context, child)),
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+  return _KanbanHarness(kanban: kanban, tasks: tasks);
+}
+
+/// A board over the seeded personal project and a shared one, so that every
+/// status is a merged column whose representative is the personal label. The
+/// shared scope's mirrored status labels, and the personal project itself, can
+/// be left out to build the board a client sees before they are pulled.
+Future<KanbanBoardSnapshot> _mixedScopeBoard(
+  WidgetTester tester, {
+  String? focusStatusLabelId,
+  bool mirrorStatusLabels = true,
+  bool selectPersonalProject = true,
+}) async {
+  final db = AppDatabase(NativeDatabase.memory());
+  addTearDown(db.close);
+  // Drift streams only emit off the test's fake clock, so the board has to be
+  // read in the real async zone before pumping the screen.
+  final board = await tester.runAsync(() async {
+    await db.ensureSeedData();
+    final now = DateTime.utc(2026, 7, 10, 9);
+    await db
+        .into(db.projects)
+        .insert(
+          ProjectsCompanion.insert(
+            id: 'project-shared',
+            userId: localUserId,
+            name: 'Shared',
+            scopeId: const Value('scope'),
+            orderKey: '2',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    await db
+        .into(db.sharedScopes)
+        .insert(
+          SharedScopesCompanion.insert(
+            id: 'scope',
+            dataJson: jsonEncode({
+              'id': 'scope',
+              'rootProjectId': 'project-shared',
+              'ownerId': 'owner',
+              'role': 'administrator',
+            }),
+          ),
+        );
+    if (mirrorStatusLabels) {
+      for (final label in await (db.select(
+        db.labels,
+      )..where((row) => row.scopeId.isNull())).get()) {
+        await db
+            .into(db.labels)
+            .insert(
+              label.copyWith(
+                id: 'scope:${label.id}',
+                scopeId: const Value('scope'),
+              ),
+            );
+      }
+    }
+    for (final task in const [
+      (
+        id: 'task-personal',
+        content: 'Personal root',
+        projectId: inboxProjectId,
+        statusId: kanbanStatusBacklogId,
+        scopeId: null,
+      ),
+      (
+        id: 'task-shared',
+        content: 'Shared root',
+        projectId: 'project-shared',
+        statusId: 'scope:$kanbanStatusInProgressId',
+        scopeId: 'scope',
+      ),
+    ]) {
+      await db
+          .into(db.tasks)
+          .insert(
+            TasksCompanion.insert(
+              id: task.id,
+              userId: localUserId,
+              content: task.content,
+              projectId: task.projectId,
+              scopeId: Value(task.scopeId),
+              orderKey: task.id,
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+      await db
+          .into(db.taskLabels)
+          .insert(
+            TaskLabelsCompanion.insert(
+              taskId: task.id,
+              labelId: task.statusId,
+              kind: const Value(labelKindKanbanStatus),
+              createdAt: now,
+            ),
+          );
+    }
+    final repository = DriftKanbanRepository(db);
+    await repository
+        .setSelectedProjectIds({
+          if (selectPersonalProject) inboxProjectId,
+          'project-shared',
+        })
+        .then((result) => result.getOrThrow());
+    if (focusStatusLabelId != null) {
+      await repository
+          .setFocusStatus(focusStatusLabelId)
+          .then((result) => result.getOrThrow());
+    }
+    return repository.watchBoard().first;
+  });
+  return board!;
+}
+
+Color _columnBackground(WidgetTester tester, String statusId) {
+  final decoration =
+      tester
+              .widget<DecoratedBox>(find.byKey(Key('kanban-column-$statusId')))
+              .decoration
+          as BoxDecoration;
+  return decoration.color!;
+}
+
+FocusRunItem _activeRun() {
+  final now = DateTime.utc(2026, 7, 10, 10);
+  return FocusRunItem(
+    id: 'run-active',
+    userId: localUserId,
+    taskId: 'task-focus',
+    projectId: inboxProjectId,
+    presetId: 'preset',
+    status: 'active',
+    startedAt: now,
+    targetWorkIntervals: 3,
+    completedWorkIntervals: 0,
+    createdAt: now,
+    updatedAt: now,
+  );
+}
+
+FocusIntervalItem _activeInterval() {
+  final now = DateTime.utc(2026, 7, 10, 10);
+  return FocusIntervalItem(
+    id: 'interval-active',
+    runId: 'run-active',
+    taskId: 'task-focus',
+    projectId: inboxProjectId,
+    type: 'work',
+    status: 'running',
+    plannedSeconds: 1500,
+    startedAt: now,
+    pausedTotalSeconds: 0,
+    sequenceNumber: 1,
+    createdAt: now,
+    updatedAt: now,
+  );
+}
+
+KanbanBoardSnapshot _snapshot({
+  List<ProjectItem>? availableProjects,
+  List<String>? selectedProjectIds,
+  TaskSchedule? taskSchedule,
+}) {
+  final now = DateTime.utc(2026, 7, 10);
+  final inbox = _project(inboxProjectId, 'Inbox');
+  final projects = availableProjects ?? [inbox];
+  final statuses = [
+    _status(
+      kanbanStatusBacklogId,
+      'Backlog',
+      KanbanSystemKey.backlog,
+      'a',
+      now,
+    ),
+    _status(kanbanStatusTodoId, 'To do', KanbanSystemKey.todo, 'b', now),
+    _status(
+      kanbanStatusInProgressId,
+      'In progress',
+      KanbanSystemKey.inProgress,
+      'c',
+      now,
+    ),
+    _status(kanbanStatusDoneId, 'Done', KanbanSystemKey.done, 'd', now),
+  ];
+  final task = TaskItem(
+    id: 'task-focus',
+    userId: localUserId,
+    content: 'Polish Today screen',
+    projectId: inboxProjectId,
+    priority: 1,
+    dueJson: taskSchedule?.toJsonString(),
+    status: 'open',
+    estimatedFocusIntervals: 3,
+    completedFocusIntervals: 1,
+    totalFocusSeconds: 1500,
+    orderKey: 'a',
+    isDeleted: false,
+    createdAt: now,
+    updatedAt: now,
+  );
+  return KanbanBoardSnapshot(
+    statuses: statuses,
+    settings: KanbanSettings(
+      id: kanbanSettingsPrimaryId,
+      userId: localUserId,
+      selectedProjectIds: selectedProjectIds ?? const [inboxProjectId],
+      focusStatusLabelId: kanbanStatusInProgressId,
+      createdAt: now,
+      updatedAt: now,
+    ),
+    focusedStatusId: kanbanStatusInProgressId,
+    availableProjects: projects,
+    cardsByStatusId: {
+      kanbanStatusBacklogId: const [],
+      kanbanStatusTodoId: const [],
+      kanbanStatusInProgressId: [
+        KanbanCard(
+          task: task,
+          project: inbox,
+          statusId: kanbanStatusInProgressId,
+          totalSubtasks: 2,
+          completedSubtasks: 1,
+        ),
+      ],
+      kanbanStatusDoneId: const [],
+    },
+  );
+}
+
+ProjectItem _project(String id, String name) {
+  final now = DateTime.utc(2026, 7, 10);
+  return ProjectItem(
+    id: id,
+    userId: localUserId,
+    name: name,
+    orderKey: id,
+    createdAt: now,
+    updatedAt: now,
+  );
+}
+
+KanbanStatus _status(
+  String id,
+  String name,
+  KanbanSystemKey systemKey,
+  String orderKey,
+  DateTime now,
+) {
+  return KanbanStatus(
+    id: id,
+    userId: localUserId,
+    name: name,
+    systemKey: systemKey,
+    orderKey: orderKey,
+    createdAt: now,
+    updatedAt: now,
+  );
+}
+
+class _KanbanHarness {
+  const _KanbanHarness({required this.kanban, required this.tasks});
+
+  final _FakeKanbanRepository kanban;
+  final _FakeTaskRepository tasks;
+}
+
+class _Move {
+  const _Move(this.taskId, this.statusId, this.targetIndex);
+
+  final String taskId;
+  final String statusId;
+  final int? targetIndex;
+}
+
+class _FakeKanbanRepository implements KanbanRepository {
+  _FakeKanbanRepository(this.snapshot);
+
+  final KanbanBoardSnapshot snapshot;
+  final moves = <_Move>[];
+
+  @override
+  Stream<KanbanBoardSnapshot> watchBoard() => Stream.value(snapshot);
+
+  @override
+  Future<Result<void>> moveTask(
+    String taskId, {
+    required String statusId,
+    int? targetIndex,
+  }) => Result.capture<void>(() async {
+    moves.add(_Move(taskId, statusId, targetIndex));
+  });
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _ControlledKanbanRepository implements KanbanRepository {
+  final completers = <Completer<void>>[];
+
+  @override
+  Future<Result<void>> moveTask(
+    String taskId, {
+    required String statusId,
+    int? targetIndex,
+  }) => Result.capture<void>(() async {
+    final completer = Completer<void>();
+    completers.add(completer);
+    return completer.future;
+  });
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _FakeTaskRepository implements TaskRepository {
+  final created = <CreateTaskInput>[];
+
+  @override
+  Future<Result<String>> createTask(CreateTaskInput input) =>
+      Result.capture<String>(() async {
+        created.add(input);
+        return 'created-${created.length}';
+      });
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _FakeProjectRepository implements ProjectRepository {
+  _FakeProjectRepository(this.projects);
+
+  final List<ProjectItem> projects;
+
+  @override
+  Stream<List<ProjectItem>> watchProjects() => Stream.value(projects);
+
+  @override
+  Future<Result<String>> createProject(
+    String name, {
+    String? color,
+    String? parentId,
+  }) => Result.capture<String>(() async {
+    return projects.first.id;
+  });
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}

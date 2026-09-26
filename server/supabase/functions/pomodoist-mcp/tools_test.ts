@@ -2,10 +2,11 @@ import { assert, assertEquals } from "@std/assert";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { existsSync } from "node:fs";
 
 import { registerPomodoistTools } from "./tools.ts";
 
-Deno.test("registers exactly the 23 Pomodoist V1 tools", async () => {
+Deno.test("registers personal tools and shared project collaboration", async () => {
   await withClient(() => Promise.reject(new Error("unexpected fetch")), async (
     client,
   ) => {
@@ -38,11 +39,16 @@ Deno.test("registers exactly the 23 Pomodoist V1 tools", async () => {
       "delete_kanban_status",
       "configure_kanban",
       "move_task_on_kanban",
+      "shared_projects",
     ]);
     for (const tool of listed.tools) {
       assertEquals(tool.inputSchema.additionalProperties, false, tool.name);
       assert(tool.outputSchema, `${tool.name} lacks outputSchema`);
-      assertEquals(tool.annotations?.openWorldHint, false, tool.name);
+      assertEquals(
+        tool.annotations?.openWorldHint,
+        tool.name === "shared_projects",
+        tool.name,
+      );
       const schema = JSON.stringify(tool.inputSchema);
       for (
         const excluded of [
@@ -156,6 +162,68 @@ Deno.test("registers exactly the 23 Pomodoist V1 tools", async () => {
       assertEquals(byName[name].annotations?.destructiveHint, true, name);
     }
   });
+});
+
+// The app localizations live outside the public core, so a repository that only
+// consumes the core has no copy of them to compare against.
+const appLocalizations = new URL(
+  "../../../../apps/flutter/lib/ui/core/localization/",
+  import.meta.url,
+);
+
+Deno.test({
+  name: "achievement locales preserve IDs and progress and match app titles",
+  ignore: !existsSync(new URL("app_pt.arb", appLocalizations)),
+  fn: async () => {
+    const calls: RpcCall[] = [];
+    await withClient(rpcFetcher(calls), async (client) => {
+      const read = async (locale: string) => {
+        const result = await client.callTool({
+          name: "get_achievements",
+          arguments: { date: "2026-07-30", time_zone: "UTC", locale },
+        });
+        assertSuccessParity(result);
+        return (result.structuredContent as {
+          data: Array<Record<string, unknown>>;
+        }).data;
+      };
+      const english = await read("en");
+      for (const locale of ["pt", "pt-BR", "ja", "ko"]) {
+        const localized = await read(locale);
+        const base = locale === "pt-BR" ? "pt" : locale;
+        const arb = JSON.parse(
+          await Deno.readTextFile(
+            new URL(
+              `../../../../apps/flutter/lib/ui/core/localization/app_${base}.arb`,
+              import.meta.url,
+            ),
+          ),
+        );
+        const titles = new Map(
+          [...arb.achievementTitle.matchAll(/(\w+)\{([^{}]+)\}/g)]
+            .map((match: RegExpMatchArray) => [match[1], match[2]]),
+        );
+        assertEquals(localized.length, 33);
+        for (let i = 0; i < localized.length; i++) {
+          const { title, subtitle, ...state } = localized[i];
+          const { title: enTitle, subtitle: enSubtitle, ...enState } =
+            english[i];
+          assertEquals(state, enState);
+          assertEquals(title, titles.get(String(state.id)));
+          assert(title !== enTitle);
+          assert(typeof subtitle === "string" && subtitle.length > 0);
+          assert(subtitle !== enSubtitle);
+        }
+        if (locale === "pt-BR") assertEquals(localized, await read("pt"));
+      }
+      for (const call of calls) {
+        assertEquals(call.body.p_arguments, {
+          date: "2026-07-30",
+          time_zone: "UTC",
+        });
+      }
+    });
+  },
 });
 
 Deno.test("routes every read tool through the closed read dispatcher", async () => {
@@ -832,6 +900,55 @@ Deno.test("cascades task/project/label/status mutations and protects anchors", a
       const result = await client.callTool({ name, arguments: arguments_ });
       assertToolError(result, "forbidden");
     }
+  });
+});
+
+Deno.test("deleting a project promotes children in place without moving their tasks", async () => {
+  const calls: RpcCall[] = [];
+  const parent = snapshot.projects[1];
+  const data = {
+    ...snapshot,
+    projects: [
+      snapshot.projects[0],
+      { ...parent, id: "before", orderKey: "a", parentId: null },
+      { ...parent, parentId: null, orderKey: "b" },
+      { ...parent, id: "after", orderKey: "c", parentId: null },
+      { ...parent, id: "child", parentId: "project-a", orderKey: "d" },
+      { ...parent, id: "grandchild", parentId: "child", orderKey: "e" },
+    ],
+    tasks: [...snapshot.tasks, {
+      ...snapshot.tasks[0],
+      id: "nested-task",
+      projectId: "child",
+    }],
+  };
+  await withClient(rpcFetcher(calls, { snapshot: data }), async (client) => {
+    assertSuccessParity(
+      await client.callTool({
+        name: "delete_project",
+        arguments: { project_id: "project-a" },
+      }),
+    );
+    const operations = writeOperations(calls);
+    const updates = operations.filter((op) =>
+      op.entityType === "project" && op.operation === "upsert"
+    );
+    assertEquals(updates.map((op) => op.entityId), [
+      "before",
+      "child",
+      "after",
+    ]);
+    assertEquals(updates.map((op) => op.payload.parentId), [null, null, null]);
+    assertEquals(updates.map((op) => op.payload.orderKey), [
+      "00000000000000001024",
+      "00000000000000002048",
+      "00000000000000003072",
+    ]);
+    assert(
+      !operations.some((op) =>
+        op.entityId === "nested-task" || op.entityId === "grandchild"
+      ),
+    );
   });
 });
 

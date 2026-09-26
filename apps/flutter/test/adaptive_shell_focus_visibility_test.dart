@@ -1,0 +1,472 @@
+import 'package:pomodoist/config/focus_dependencies.dart';
+import 'package:pomodoist/config/account_providers.dart';
+import 'package:pomodoist/config/productivity_dependencies.dart';
+import 'package:pomodoist/domain/models/calendar/calendar_models.dart';
+import 'package:pomodoist/utils/result.dart';
+import 'package:pomodoist/data/repositories/tasks/task_repository.dart';
+import 'package:pomodoist/data/repositories/focus/focus_repository.dart';
+import 'package:pomodoist/data/repositories/achievements/achievement_repository.dart';
+import 'package:go_router/go_router.dart';
+import 'support/test_app.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:pomodoist/config/providers.dart';
+import 'package:pomodoist/ui/core/themes/app_theme.dart';
+import 'package:pomodoist/ui/core/widgets/adaptive_shell.dart';
+import 'package:pomodoist/ui/core/widgets/task_details_host.dart';
+import 'package:pomodoist/domain/models/focus/focus_models.dart';
+import 'package:pomodoist/data/repositories/calendar/google_calendar_repository.dart';
+import 'package:pomodoist/domain/models/productivity/achievement_models.dart';
+import 'package:pomodoist/domain/models/tasks/task_models.dart';
+import 'package:pomodoist/ui/tasks/widgets/task_detail_screen.dart';
+import 'package:pomodoist/ui/core/localization/app_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+void main() {
+  setUpAll(loadTestAppResources);
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
+  for (final layout in const {
+    'compact': Size(600, 800),
+    'wide': Size(1200, 900),
+  }.entries) {
+    testWidgets(
+      'active mini player hides on Focus paths and returns on ${layout.key}',
+      (tester) async {
+        await _pumpShell(tester, size: layout.value);
+
+        expect(_miniPlayerSurface, findsOneWidget);
+
+        await tester.tap(find.byKey(const Key('go-focus')));
+        await _pumpShellFrame(tester);
+
+        expect(_miniPlayerSurface, findsNothing);
+
+        await tester.tap(find.byKey(const Key('go-nested-focus')));
+        await _pumpShellFrame(tester);
+
+        expect(_miniPlayerSurface, findsNothing);
+
+        await tester.tap(find.byKey(const Key('go-inbox')));
+        await _pumpShellFrame(tester);
+
+        expect(_miniPlayerSurface, findsOneWidget);
+      },
+    );
+
+    for (final announcement in const [
+      (
+        name: 'global',
+        item: _globalAchievement,
+        visibleKey: Key('achievement-global-banner'),
+        absentKey: Key('achievement-bottom-plaque'),
+      ),
+      (
+        name: 'bottom',
+        item: _bottomAchievement,
+        visibleKey: Key('achievement-bottom-plaque'),
+        absentKey: Key('achievement-global-banner'),
+      ),
+    ]) {
+      testWidgets(
+        '${announcement.name} achievement overlays ${layout.key} content without shifting it',
+        (tester) async {
+          await _pumpShell(tester, size: layout.value);
+
+          final contentAnchor = find.byKey(const Key('go-inbox'));
+          final baselineCenter = tester.getCenter(contentAnchor);
+          final container = ProviderScope.containerOf(
+            tester.element(find.byType(AdaptiveShell)),
+          );
+
+          container.read(achievementAnnouncementRepositoryProvider).enqueue([
+            announcement.item,
+          ]);
+          await tester.pump();
+
+          expect(find.byKey(announcement.visibleKey), findsOneWidget);
+          expect(find.byKey(announcement.absentKey), findsNothing);
+          expect(tester.getCenter(contentAnchor), baselineCenter);
+        },
+      );
+    }
+  }
+
+  testWidgets(
+    'compact Focus keeps bottom navigation and one pause action surface',
+    (tester) async {
+      await _pumpShell(
+        tester,
+        size: const Size(600, 800),
+        initialLocation: '/focus',
+      );
+
+      expect(find.byKey(const Key('mobile-bottom-navigation')), findsOneWidget);
+      expect(_miniPlayerSurface, findsNothing);
+      expect(find.byTooltip('Pause'), findsOneWidget);
+    },
+  );
+
+  testWidgets('compact task details replace shell chrome and fill viewport', (
+    tester,
+  ) async {
+    await _pumpShell(
+      tester,
+      size: const Size(600, 800),
+      initialLocation: '/inbox',
+      taskId: 'task-1',
+      taskRepository: _TaskRepository(_task()),
+    );
+
+    expect(find.text('Ship celebration'), findsOneWidget);
+    expect(find.byKey(const Key('shell-menu-button')), findsNothing);
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+    expect(
+      tester.getRect(find.byType(TaskDetailsHost)),
+      const Rect.fromLTWH(0, 0, 600, 800),
+    );
+
+    await tester.tap(find.byTooltip('Close'));
+    await _pumpShellFrame(tester);
+
+    expect(find.text('Ship celebration'), findsNothing);
+    expect(find.byKey(const Key('shell-menu-button')), findsOneWidget);
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsOneWidget);
+  });
+
+  testWidgets('wide task details keep the 440-pixel side panel', (
+    tester,
+  ) async {
+    await _pumpShell(
+      tester,
+      size: const Size(1400, 900),
+      initialLocation: '/inbox',
+      taskId: 'task-1',
+      taskRepository: _TaskRepository(_task()),
+    );
+
+    expect(find.byKey(const Key('shell-menu-button')), findsOneWidget);
+    expect(tester.getSize(find.byType(TaskDetailScreen)).width, 440);
+  });
+
+  testWidgets('completion overlays a non-Focus shell route', (tester) async {
+    await _pumpShell(
+      tester,
+      size: const Size(600, 800),
+      initialLocation: '/inbox',
+    );
+    final context = tester.element(find.byType(AdaptiveShell));
+    ProviderScope.containerOf(context)
+        .read(focusCompletionRepositoryProvider)
+        .present(
+          FocusRunCompletionEvent(
+            runId: 'completed-run',
+            completedWorkIntervals: 4,
+            targetWorkIntervals: 4,
+            completedAt: DateTime.utc(2026, 8, 19, 12),
+          ),
+        );
+
+    await tester.pump();
+
+    expect(find.byKey(const Key('focus-completion-overlay')), findsOneWidget);
+    expect(find.byKey(const Key('go-inbox')).hitTestable(), findsNothing);
+  });
+
+  testWidgets('global completion keeps task undo feedback visible', (
+    tester,
+  ) async {
+    final taskRepository = _TaskRepository(_task());
+    await _pumpShell(
+      tester,
+      size: const Size(600, 800),
+      initialLocation: '/inbox',
+      taskRepository: taskRepository,
+    );
+    final context = tester.element(find.byType(AdaptiveShell));
+    ProviderScope.containerOf(context)
+        .read(focusCompletionRepositoryProvider)
+        .present(
+          FocusRunCompletionEvent(
+            runId: 'linked-run',
+            taskId: 'task-1',
+            taskTitle: 'Ship celebration',
+            completedWorkIntervals: 4,
+            targetWorkIntervals: 4,
+            completedAt: DateTime.utc(2026, 8, 19, 12),
+          ),
+        );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('focus-completion-complete-task')));
+    await tester.pumpAndSettle();
+
+    expect(taskRepository.completeCount, 1);
+    expect(find.text('Task completed'), findsOneWidget);
+  });
+}
+
+Finder get _miniPlayerSurface =>
+    find.byKey(const Key('mini-focus-player-surface'));
+
+Future<void> _pumpShell(
+  WidgetTester tester, {
+  required Size size,
+  String initialLocation = '/inbox',
+  String? taskId,
+  TaskRepository? taskRepository,
+}) async {
+  final previousSize = tester.view.physicalSize;
+  final previousDevicePixelRatio = tester.view.devicePixelRatio;
+  tester.view
+    ..physicalSize = size
+    ..devicePixelRatio = 1;
+  addTearDown(() {
+    tester.view
+      ..physicalSize = previousSize
+      ..devicePixelRatio = previousDevicePixelRatio;
+  });
+
+  final now = DateTime.utc(2026, 7, 10, 10);
+  final router = GoRouter(
+    initialLocation: taskId == null
+        ? '/'
+        : '/?task=${Uri.encodeQueryComponent(taskId)}',
+    routes: [
+      GoRoute(
+        path: '/',
+        builder: (_, state) => _AdaptiveShellRouteHarness(
+          initialLocation: initialLocation,
+          taskId: state.uri.queryParameters['task'],
+        ),
+      ),
+    ],
+  );
+  addTearDown(router.dispose);
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        focusRepositoryProvider.overrideWithValue(_ActiveFocusRepository(now)),
+        focusTickerProvider.overrideWith((ref) => Stream.value(now)),
+        accountProfileProvider.overrideWith((ref) => null),
+        tasksByQueryProvider.overrideWith(
+          (ref, query) => Stream.value(const []),
+        ),
+        projectsProvider.overrideWith((ref) => Stream.value(const [])),
+        achievementRepositoryProvider.overrideWithValue(
+          const _NoopAchievementRepository(),
+        ),
+        calendarIntegrationRepositoryProvider.overrideWithValue(
+          const _NoopCalendarIntegrationRepository(),
+        ),
+        achievementsProvider.overrideWith(
+          (ref) => Stream.value(const <AchievementItem>[]),
+        ),
+        if (taskRepository != null)
+          taskRepositoryProvider.overrideWithValue(taskRepository),
+      ],
+      child: MaterialApp.router(
+        builder: testAppBuilder,
+        theme: AppTheme.light(),
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        routerConfig: router,
+      ),
+    ),
+  );
+  await _pumpShellFrame(tester);
+}
+
+Future<void> _pumpShellFrame(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 300));
+}
+
+class _AdaptiveShellRouteHarness extends StatefulWidget {
+  const _AdaptiveShellRouteHarness({
+    required this.initialLocation,
+    required this.taskId,
+  });
+
+  final String initialLocation;
+  final String? taskId;
+
+  @override
+  State<_AdaptiveShellRouteHarness> createState() =>
+      _AdaptiveShellRouteHarnessState();
+}
+
+class _AdaptiveShellRouteHarnessState
+    extends State<_AdaptiveShellRouteHarness> {
+  late String _location = widget.initialLocation;
+
+  @override
+  Widget build(BuildContext context) {
+    final onFocus = _location == '/focus';
+    return AdaptiveShell(
+      location: _location,
+      taskId: widget.taskId,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (onFocus)
+              IconButton(
+                tooltip: 'Pause',
+                onPressed: () {},
+                icon: const Icon(Icons.pause),
+              ),
+            TextButton(
+              key: const Key('go-focus'),
+              onPressed: () => setState(() => _location = '/focus'),
+              child: const Text('Open Focus'),
+            ),
+            TextButton(
+              key: const Key('go-nested-focus'),
+              onPressed: () => setState(() => _location = '/focus/session'),
+              child: const Text('Open nested Focus'),
+            ),
+            TextButton(
+              key: const Key('go-inbox'),
+              onPressed: () => setState(() => _location = '/inbox'),
+              child: const Text('Open Inbox'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ActiveFocusRepository implements FocusRepository {
+  _ActiveFocusRepository(this.now);
+
+  final DateTime now;
+
+  @override
+  Stream<FocusRunItem?> watchActiveRun() => Stream.value(
+    FocusRunItem(
+      id: 'run',
+      userId: 'user',
+      presetId: 'preset',
+      status: 'active',
+      startedAt: now,
+      targetWorkIntervals: 2,
+      completedWorkIntervals: 0,
+      createdAt: now,
+      updatedAt: now,
+    ),
+  );
+
+  @override
+  Stream<FocusIntervalItem?> watchActiveInterval() => Stream.value(
+    FocusIntervalItem(
+      id: 'interval',
+      runId: 'run',
+      type: 'work',
+      status: 'running',
+      plannedSeconds: 25 * 60,
+      startedAt: now,
+      pausedTotalSeconds: 0,
+      sequenceNumber: 1,
+      createdAt: now,
+      updatedAt: now,
+    ),
+  );
+
+  @override
+  Stream<List<FocusPresetItem>> watchPresets() => Stream.value(const []);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _NoopAchievementRepository implements AchievementRepository {
+  const _NoopAchievementRepository();
+
+  @override
+  Stream<List<AchievementItem>> watchAchievements() => Stream.value(const []);
+
+  @override
+  Future<Result<List<AchievementItem>>> takePendingAnnouncements(
+    List<AchievementItem> items,
+  ) => Result.capture<List<AchievementItem>>(() async => const []);
+}
+
+class _NoopCalendarIntegrationRepository
+    implements CalendarIntegrationRepository {
+  const _NoopCalendarIntegrationRepository();
+
+  @override
+  Stream<GoogleCalendarConnection?> watchConnection() => Stream.value(null);
+
+  @override
+  Stream<GoogleCalendarEventLink?> watchLinkForTask(String taskId) =>
+      Stream.value(null);
+}
+
+const _globalAchievement = AchievementItem(
+  id: 'focus-overlay',
+  group: AchievementGroup.focus,
+  presentation: AchievementPresentation.globalBanner,
+  progress: 1,
+  target: 1,
+);
+
+const _bottomAchievement = AchievementItem(
+  id: 'combo-overlay',
+  group: AchievementGroup.combo,
+  presentation: AchievementPresentation.bottomPlaque,
+  progress: 1,
+  target: 1,
+);
+
+TaskItem _task() {
+  final now = DateTime.utc(2026, 8, 19, 12);
+  return TaskItem(
+    id: 'task-1',
+    userId: 'local',
+    content: 'Ship celebration',
+    projectId: 'project-1',
+    priority: 1,
+    status: 'open',
+    completedFocusIntervals: 4,
+    totalFocusSeconds: 6000,
+    orderKey: '1',
+    isDeleted: false,
+    createdAt: now,
+    updatedAt: now,
+  );
+}
+
+class _TaskRepository implements TaskRepository {
+  _TaskRepository(this.task);
+
+  final TaskItem task;
+  int completeCount = 0;
+
+  @override
+  Stream<TaskItem?> watchTask(String id) => Stream.value(task);
+
+  @override
+  Future<Result<void>> completeTask(String id) =>
+      Result.capture<void>(() async {
+        completeCount++;
+      });
+
+  @override
+  Future<Result<void>> uncompleteTask(String id) =>
+      Result.capture<void>(() async {});
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
