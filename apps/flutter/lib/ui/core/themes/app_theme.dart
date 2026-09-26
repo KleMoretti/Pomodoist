@@ -432,7 +432,12 @@ class AppTheme {
         anchor: shad.ShadAnchorAuto(
           offset: Offset(0, 4),
           targetAnchor: AlignmentDirectional.bottomEnd,
-          followerAnchor: AlignmentDirectional.topEnd,
+          followerAnchor: AlignmentDirectional.bottomStart,
+          fallback: shad.ShadAnchorAuto(
+            offset: Offset(0, -4),
+            targetAnchor: AlignmentDirectional.topEnd,
+            followerAnchor: AlignmentDirectional.topStart,
+          ),
         ),
       ),
       contextMenuTheme: shad.ShadContextMenuTheme(

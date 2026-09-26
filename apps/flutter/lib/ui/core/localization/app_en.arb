@@ -258,6 +258,9 @@
   "navPriorityMatrix": "Priority Matrix",
   "navCalendar": "Calendar",
   "calendarSubtitle": "Plan your day. Leave room for life.",
+  "calendarRhythm": "Rhythm",
+  "calendarCollapseMonth": "Collapse month",
+  "calendarExpandMonth": "Show month",
   "calendarDay": "Day",
   "calendarWeek": "Week",
   "calendarMonth": "Month",
@@ -407,6 +410,27 @@
   "navProjects": "Projects",
   "navSettings": "Settings",
   "settingsTitle": "Settings",
+  "settingsBottomNavigation": "Bottom navigation",
+  "settingsBottomNavigationDescription": "Choose up to five sections, their order, and the navigation style. Saved on this device.",
+  "settingsBottomNavigationSoft": "Soft accent",
+  "settingsBottomNavigationLabels": "With labels",
+  "settingsBottomNavigationPreview": "Preview",
+  "settingsBottomNavigationEmpty": "The bottom panel is hidden. All sections and these settings remain available from the top menu.",
+  "settingsBottomNavigationCount": "{count} of {max} sections",
+  "@settingsBottomNavigationCount": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "max": {"type": "int"}
+    }
+  },
+  "settingsBottomNavigationEarlier": "Move earlier",
+  "settingsBottomNavigationLater": "Move later",
+  "settingsBottomNavigationAdd": "Add a section",
+  "settingsBottomNavigationClear": "Remove all",
+  "settingsBottomNavigationDefaults": "Use defaults",
+  "settingsBottomNavigationLoadError": "Could not load navigation settings. Please try again.",
+  "settingsBottomNavigationEdit": "Customize",
+  "settingsBottomNavigationRemove": "Remove",
   "settingsAboutTitle": "About",
   "settingsFocusCompletionCelebrationTitle": "Focus completion celebration",
   "settingsFocusCompletionCelebrationSubtitle": "Show a full-screen celebration after the final break.",
@@ -1020,6 +1044,16 @@
     }
   },
   "focusTitle": "Focus",
+  "focusSessionDisplay": "Session display",
+  "focusSessionCompact": "Compact",
+  "focusSessionIcons": "Icons",
+  "focusNextInterval": "Next: {phase} · {duration}",
+  "@focusNextInterval": {
+    "placeholders": {
+      "phase": {"type": "String"},
+      "duration": {"type": "String"}
+    }
+  },
   "focusRoundsUnit": "rounds",
   "focusPresetClassic": "Classic",
   "focusPresetDeepWork": "Deep Work",

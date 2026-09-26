@@ -188,6 +188,9 @@
   "navPriorityMatrix": "优先级矩阵",
   "navCalendar": "日历",
   "calendarSubtitle": "规划一天，也为生活留出空间。",
+  "calendarRhythm": "节奏",
+  "calendarCollapseMonth": "收起月份",
+  "calendarExpandMonth": "显示月份",
   "calendarDay": "日",
   "calendarWeek": "周",
   "calendarMonth": "月",
@@ -289,6 +292,27 @@
   "navProjects": "项目",
   "navSettings": "设置",
   "settingsTitle": "设置",
+  "settingsBottomNavigation": "底部导航",
+  "settingsBottomNavigationDescription": "选择最多五个栏目、排列顺序和导航样式。设置保存在本设备上。",
+  "settingsBottomNavigationSoft": "柔和强调",
+  "settingsBottomNavigationLabels": "显示文字",
+  "settingsBottomNavigationPreview": "预览",
+  "settingsBottomNavigationEmpty": "底部面板已隐藏。所有栏目和这些设置仍可从顶部菜单访问。",
+  "settingsBottomNavigationCount": "已选 {count}/{max} 个栏目",
+  "@settingsBottomNavigationCount": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "max": {"type": "int"}
+    }
+  },
+  "settingsBottomNavigationEarlier": "上移",
+  "settingsBottomNavigationLater": "下移",
+  "settingsBottomNavigationAdd": "添加栏目",
+  "settingsBottomNavigationClear": "全部移除",
+  "settingsBottomNavigationDefaults": "使用默认设置",
+  "settingsBottomNavigationLoadError": "无法加载导航设置，请重试。",
+  "settingsBottomNavigationEdit": "自定义",
+  "settingsBottomNavigationRemove": "移除",
   "settingsAboutTitle": "关于",
   "settingsFocusCompletionCelebrationTitle": "专注完成动效",
   "settingsFocusCompletionCelebrationSubtitle": "完成全部专注和最后一次休息后，显示全屏庆祝动画。",
@@ -610,6 +634,16 @@
   "clearDate": "清除日期",
   "priority": "优先级 {priority}",
   "focusTitle": "专注",
+  "focusSessionDisplay": "会话显示",
+  "focusSessionCompact": "紧凑",
+  "focusSessionIcons": "图标",
+  "focusNextInterval": "下一阶段：{phase} · {duration}",
+  "@focusNextInterval": {
+    "placeholders": {
+      "phase": {"type": "String"},
+      "duration": {"type": "String"}
+    }
+  },
   "focusRoundsUnit": "轮",
   "focusPresetClassic": "经典番茄钟",
   "focusPresetDeepWork": "深度专注",
