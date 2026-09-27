@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
-import 'package:pomodoist/config/providers.dart';
 import 'package:pomodoist/ui/core/localization/app_l10n.dart';
 import 'package:pomodoist/ui/core/themes/app_theme.dart';
 import 'package:pomodoist/ui/core/widgets/app_date_time_picker.dart';
@@ -262,8 +261,8 @@ class _RecurrenceDialogState extends ConsumerState<_RecurrenceDialog> {
     });
     try {
       await ref
-          .read(taskRepositoryProvider)
-          .updateTaskRecurrence(
+          .read(recurrenceTaskActionsProvider)
+          .update(
             widget.task.id,
             recurrence: recurrence,
             startDate:
