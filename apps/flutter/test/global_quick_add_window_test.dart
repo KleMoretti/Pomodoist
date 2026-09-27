@@ -7,7 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pomodoist/ui/quick_add/widgets/global_quick_add_window.dart';
 import 'package:pomodoist/config/billing_dependencies.dart';
 import 'package:pomodoist/config/billing_store_dependencies.dart';
-import 'package:pomodoist/config/app_language.dart';
 import 'package:pomodoist/config/providers.dart';
 import 'package:pomodoist/config/voice_dependencies.dart';
 import 'package:pomodoist/data/services/local/database/app_database.dart';

@@ -73,30 +73,31 @@ void main() {
           temp.deleteSync(recursive: true);
         }
       }
-      if (!tagAware) continue;
-      for (final tag in [
-        '1.0.3',
-        'v1.0',
-        'v1.0.3-beta.1',
-        'v1.0.3-rc.',
-        'v1.0.3-rc.01',
-        'v01.0.3',
-        'v1.0.3+4',
-        'v1.0.3-rc.1/extra',
-      ]) {
-        final temp = Directory.systemTemp.createTempSync('desktop-invalid-');
-        try {
-          final pubspec = File('${temp.path}/apps/flutter/pubspec.yaml')
-            ..createSync(recursive: true)
-            ..writeAsStringSync('version: 0.9.0+91\n');
-          final result = _bash(script, temp, {
-            'GITHUB_REF_TYPE': 'tag',
-            'GITHUB_REF_NAME': tag,
-          });
-          expect(result.exitCode, isNot(0), reason: tag);
-          expect(pubspec.readAsStringSync(), 'version: 0.9.0+91\n');
-        } finally {
-          temp.deleteSync(recursive: true);
+      if (tagAware) {
+        for (final tag in [
+          '1.0.3',
+          'v1.0',
+          'v1.0.3-beta.1',
+          'v1.0.3-rc.',
+          'v1.0.3-rc.01',
+          'v01.0.3',
+          'v1.0.3+4',
+          'v1.0.3-rc.1/extra',
+        ]) {
+          final temp = Directory.systemTemp.createTempSync('desktop-invalid-');
+          try {
+            final pubspec = File('${temp.path}/apps/flutter/pubspec.yaml')
+              ..createSync(recursive: true)
+              ..writeAsStringSync('version: 0.9.0+91\n');
+            final result = _bash(script, temp, {
+              'GITHUB_REF_TYPE': 'tag',
+              'GITHUB_REF_NAME': tag,
+            });
+            expect(result.exitCode, isNot(0), reason: tag);
+            expect(pubspec.readAsStringSync(), 'version: 0.9.0+91\n');
+          } finally {
+            temp.deleteSync(recursive: true);
+          }
         }
       }
     });
@@ -427,6 +428,7 @@ ProcessResult _bash(
 );
 
 // Execute the real publication scripts; generation is tested in Python.
+// ignore: unused_element
 const _fakeGh = r'''
 python3() {
   echo generate-notes >> gh.log
