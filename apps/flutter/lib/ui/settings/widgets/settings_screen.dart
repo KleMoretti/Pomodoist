@@ -133,18 +133,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                   ? context.appColors.accent
                   : context.appColors.primaryText,
               onPressed: () => context.go(settingsLocation(section).toString()),
-              child: SizedBox(
-                width: double.infinity,
-                child: Row(
-                  children: [
-                    Icon(_icon(section), size: 18),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(_title(section), textAlign: TextAlign.start),
-                    ),
-                    if (!wide) const Icon(LucideIcons.chevronRight, size: 16),
-                  ],
-                ),
+              expands: true,
+              child: Row(
+                children: [
+                  Icon(_icon(section), size: 18),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(_title(section), textAlign: TextAlign.start),
+                  ),
+                  if (!wide) const Icon(LucideIcons.chevronRight, size: 16),
+                ],
               ),
             ),
           ),
