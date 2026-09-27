@@ -260,11 +260,12 @@ Deno.test("quota RPC retries preserve identity, use server credentials and sanit
         input,
         "https://database.test/rest/v1/rpc/pomodoist_llm_quota",
       );
+      const requestInit = init as globalThis.RequestInit | undefined;
       assertEquals(
-        new Headers(init?.headers).get("Authorization"),
+        new Headers(requestInit?.headers).get("Authorization"),
         "Bearer server-only",
       );
-      bodies.push(JSON.parse(String(init?.body)));
+      bodies.push(JSON.parse(String(requestInit?.body)));
       if (bodies.length === 1) throw Error("Lost response");
       return Response.json({ allowed: true });
     }) as typeof fetch,
