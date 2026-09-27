@@ -912,10 +912,14 @@ void main() {
     );
     await tester.ensureVisible(celebration);
     expect(celebration, findsOneWidget);
+    final celebrationScrollable = find.ancestor(
+      of: celebration,
+      matching: find.byType(Scrollable),
+    ).first;
     await tester.scrollUntilVisible(
       celebration,
       200,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: celebrationScrollable,
     );
     await tester.tap(celebration);
     await tester.pumpAndSettle();

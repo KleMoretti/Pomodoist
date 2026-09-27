@@ -209,7 +209,6 @@ class ThemeSettingsCard extends ConsumerWidget {
             children: [
               for (final option in AppThemeMode.values)
                 ChoiceChip(
-                  showCheckmark: false,
                   label: Text(switch (option) {
                     AppThemeMode.system => l10n.settingsThemeSystem,
                     AppThemeMode.light => l10n.settingsThemeLight,

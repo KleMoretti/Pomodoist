@@ -3747,10 +3747,14 @@ void main() {
     router.go('/browse');
     await _pumpFrames(tester);
     final completedLink = find.byKey(const Key('browse-completed-tasks'));
+    final browseScrollable = find.ancestor(
+      of: completedLink,
+      matching: find.byType(Scrollable),
+    ).first;
     await tester.scrollUntilVisible(
       completedLink,
       400,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: browseScrollable,
     );
     await tester.tap(completedLink);
     await _pumpFrames(tester);

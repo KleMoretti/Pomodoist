@@ -355,10 +355,16 @@ class _TaskMetadataChips extends ConsumerWidget {
     final scheduleSemanticLabel = taskTimeState == null
         ? scheduleLabel
         : '$scheduleLabel, ${taskTimeStatusLabel(l10n, taskTimeState)}';
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final scheduleChipWidth = task.schedule?.isTimed == true &&
+                constraints.hasBoundedWidth
+            ? (constraints.maxWidth < 350 ? constraints.maxWidth : 350)
+            : null;
+        return Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
         Tooltip(
           message: l10n.priority(task.priority),
           child: ShadMenubar(
@@ -418,6 +424,8 @@ class _TaskMetadataChips extends ConsumerWidget {
               items: [
                 ShadMenubarItem(
                   focusNode: picker.focusNode,
+                  width: scheduleChipWidth,
+                  expands: scheduleChipWidth != null,
                   items: [
                     ShadContextMenuItem(
                       onPressed: () => unawaited(
@@ -522,7 +530,7 @@ class _TaskMetadataChips extends ConsumerWidget {
             ),
           ),
         ),
-        ShadBadge.secondary(
+          ShadBadge.secondary(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -562,7 +570,9 @@ class _TaskMetadataChips extends ConsumerWidget {
             ],
           ),
         ),
-      ],
+          ],
+        );
+      },
     );
   }
 }

@@ -115,39 +115,51 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     SettingsSection.about => LucideIcons.info,
   };
 
-  Widget _menu({required bool wide}) => ListView(
-    padding: EdgeInsets.zero,
-    children: [
-      for (final section in SettingsSection.values)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: Semantics(
-            selected: wide && _navigation.selected == section,
-            child: ShadButton.ghost(
-              height: 48,
-              mainAxisAlignment: MainAxisAlignment.start,
-              backgroundColor: wide && _navigation.selected == section
-                  ? context.appColors.accent.withValues(alpha: 0.10)
-                  : null,
-              foregroundColor: wide && _navigation.selected == section
-                  ? context.appColors.accent
-                  : context.appColors.primaryText,
-              onPressed: () => context.go(settingsLocation(section).toString()),
-              expands: true,
-              child: Row(
-                children: [
-                  Icon(_icon(section), size: 18),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(_title(section), textAlign: TextAlign.start),
+  Widget _menu({required bool wide}) => LayoutBuilder(
+    builder: (context, constraints) {
+      final menuWidth = constraints.hasBoundedWidth
+          ? constraints.maxWidth
+          : null;
+      return ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          for (final section in SettingsSection.values)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Semantics(
+                selected: wide && _navigation.selected == section,
+                child: ShadButton.ghost(
+                  width: menuWidth,
+                  height: 48,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  backgroundColor: wide && _navigation.selected == section
+                      ? context.appColors.accent.withValues(alpha: 0.10)
+                      : null,
+                  foregroundColor: wide && _navigation.selected == section
+                      ? context.appColors.accent
+                      : context.appColors.primaryText,
+                  onPressed: () =>
+                      context.go(settingsLocation(section).toString()),
+                  expands: true,
+                  child: Row(
+                    children: [
+                      Icon(_icon(section), size: 18),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _title(section),
+                          textAlign: TextAlign.start,
+                        ),
+                      ),
+                      if (!wide) const Icon(LucideIcons.chevronRight, size: 16),
+                    ],
                   ),
-                  if (!wide) const Icon(LucideIcons.chevronRight, size: 16),
-                ],
+                ),
               ),
             ),
-          ),
-        ),
-    ],
+        ],
+      );
+    },
   );
 
   @override
