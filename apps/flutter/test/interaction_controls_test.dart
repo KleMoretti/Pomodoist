@@ -3760,7 +3760,7 @@ void main() {
       scrollable: browseScrollable,
     );
     await tester.pumpAndSettle();
-    await tester.ensureVisible(completedLink, alignment: 0.5);
+    await tester.ensureVisible(completedLink);
     await tester.pumpAndSettle();
     await tester.tap(completedLink);
     await _pumpFrames(tester);

@@ -922,7 +922,7 @@ void main() {
       scrollable: celebrationScrollable,
     );
     await tester.pumpAndSettle();
-    await tester.ensureVisible(celebration, alignment: 0.5);
+    await tester.ensureVisible(celebration);
     await tester.pumpAndSettle();
     await tester.tap(celebration);
     await tester.pumpAndSettle();
