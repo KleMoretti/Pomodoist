@@ -359,7 +359,7 @@ class _TaskMetadataChips extends ConsumerWidget {
       builder: (context, constraints) {
         final scheduleChipWidth = task.schedule?.isTimed == true &&
                 constraints.hasBoundedWidth
-            ? (constraints.maxWidth < 350 ? constraints.maxWidth : 350)
+            ? (constraints.maxWidth < 350.0 ? constraints.maxWidth : 350.0)
             : null;
         return Wrap(
           spacing: 8,
