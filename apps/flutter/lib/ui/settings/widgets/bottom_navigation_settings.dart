@@ -111,6 +111,7 @@ class _NavigationEditorState extends State<_NavigationEditor> {
                   children: [
                     for (final style in BottomNavigationStyle.values)
                       ChoiceChip(
+                        showCheckmark: false,
                         label: Text(
                           style == BottomNavigationStyle.soft
                               ? l10n.settingsBottomNavigationSoft

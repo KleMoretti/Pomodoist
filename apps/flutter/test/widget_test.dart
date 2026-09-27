@@ -912,15 +912,18 @@ void main() {
     );
     await tester.ensureVisible(celebration);
     expect(celebration, findsOneWidget);
-    final celebrationScrollable = find.ancestor(
-      of: celebration,
+    final celebrationScrollable = find.descendant(
+      of: find.byKey(const PageStorageKey<String>('settings-tasksFocus')),
       matching: find.byType(Scrollable),
-    ).first;
+    );
     await tester.scrollUntilVisible(
       celebration,
       200,
       scrollable: celebrationScrollable,
     );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(celebration, alignment: 0.5);
+    await tester.pumpAndSettle();
     await tester.tap(celebration);
     await tester.pumpAndSettle();
 

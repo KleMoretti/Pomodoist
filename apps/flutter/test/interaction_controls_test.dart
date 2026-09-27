@@ -1446,7 +1446,10 @@ void main() {
     router.go('/task/parent-1');
     await _pumpFrames(tester);
     await _openTaskContextMenu(tester, 'Timed child');
-    await tester.tap(find.text('Tomorrow').last);
+    final tomorrowAction = find.text('Tomorrow').last;
+    await tester.ensureVisible(tomorrowAction);
+    await tester.pumpAndSettle();
+    await tester.tap(tomorrowAction);
     await _pumpFrames(tester);
 
     final schedule = harness.taskRepository.updatePatches.single.schedule!;
@@ -3756,6 +3759,9 @@ void main() {
       400,
       scrollable: browseScrollable,
     );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(completedLink, alignment: 0.5);
+    await tester.pumpAndSettle();
     await tester.tap(completedLink);
     await _pumpFrames(tester);
 

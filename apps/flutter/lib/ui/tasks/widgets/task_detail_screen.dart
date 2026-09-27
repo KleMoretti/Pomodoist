@@ -357,146 +357,44 @@ class _TaskMetadataChips extends ConsumerWidget {
         : '$scheduleLabel, ${taskTimeStatusLabel(l10n, taskTimeState)}';
     return LayoutBuilder(
       builder: (context, constraints) {
-        final scheduleChipWidth = task.schedule?.isTimed == true &&
-                constraints.hasBoundedWidth
+        final scheduleChipWidth =
+            task.schedule?.isTimed == true && constraints.hasBoundedWidth
             ? (constraints.maxWidth < 350.0 ? constraints.maxWidth : 350.0)
             : null;
         return Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
-        Tooltip(
-          message: l10n.priority(task.priority),
-          child: ShadMenubar(
-            key: const Key('task-detail-priority-chip'),
-            padding: EdgeInsets.zero,
-            border: ShadBorder.none,
-            backgroundColor: Colors.transparent,
-            items: [
-              ShadMenubarItem(
+            Tooltip(
+              message: l10n.priority(task.priority),
+              child: ShadMenubar(
+                key: const Key('task-detail-priority-chip'),
+                padding: EdgeInsets.zero,
+                border: ShadBorder.none,
+                backgroundColor: Colors.transparent,
                 items: [
-                  for (final priority in [1, 2, 3, 4])
-                    ShadContextMenuItem(
-                      trailing: Icon(
-                        task.priority == priority ? LucideIcons.check : null,
-                        size: 16,
-                      ),
-                      onPressed: () => unawaited(
-                        ref
-                            .read(taskScheduleViewModelProvider(task).notifier)
-                            .setPriority(priority),
-                      ),
-                      child: Text(l10n.priority(priority)),
-                    ),
-                ],
-                height: 36,
-                buttonPadding: const EdgeInsets.symmetric(horizontal: 10),
-                child: ShadBadge.secondary(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 5,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        LucideIcons.flag,
-                        size: 16,
-                        color: _priorityColor(task.priority, colors),
-                      ),
-                      const SizedBox(width: 6),
-                      Text('p${task.priority}'),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        Tooltip(
-          message: l10n.scheduleTitle,
-          child: AppDateTimePicker(
-            builder: (context, picker) => ShadMenubar(
-              key: const Key('task-detail-schedule-chip'),
-              padding: EdgeInsets.zero,
-              border: ShadBorder.none,
-              backgroundColor: Colors.transparent,
-              items: [
-                ShadMenubarItem(
-                  focusNode: picker.focusNode,
-                  width: scheduleChipWidth,
-                  expands: scheduleChipWidth != null,
-                  items: [
-                    ShadContextMenuItem(
-                      onPressed: () => unawaited(
-                        _runScheduleQuickAction(
-                          context,
-                          ref,
-                          task,
-                          picker,
-                          _ScheduleQuickAction.today,
-                        ),
-                      ),
-                      child: Text(l10n.today),
-                    ),
-                    ShadContextMenuItem(
-                      onPressed: () => unawaited(
-                        _runScheduleQuickAction(
-                          context,
-                          ref,
-                          task,
-                          picker,
-                          _ScheduleQuickAction.tomorrow,
-                        ),
-                      ),
-                      child: Text(l10n.tomorrow),
-                    ),
-                    const Divider(height: 8),
-                    ShadContextMenuItem(
-                      onPressed: () => unawaited(
-                        _runScheduleQuickAction(
-                          context,
-                          ref,
-                          task,
-                          picker,
-                          _ScheduleQuickAction.allDay,
-                        ),
-                      ),
-                      child: Text(l10n.allDay),
-                    ),
-                    ShadContextMenuItem(
-                      onPressed: () => unawaited(
-                        _runScheduleQuickAction(
-                          context,
-                          ref,
-                          task,
-                          picker,
-                          _ScheduleQuickAction.timed,
-                        ),
-                      ),
-                      child: Text(l10n.timedBlock),
-                    ),
-                    if (task.schedule != null) ...[
-                      const Divider(height: 8),
-                      ShadContextMenuItem(
-                        onPressed: () => unawaited(
-                          _runScheduleQuickAction(
-                            context,
-                            ref,
-                            task,
-                            picker,
-                            _ScheduleQuickAction.clear,
+                  ShadMenubarItem(
+                    items: [
+                      for (final priority in [1, 2, 3, 4])
+                        ShadContextMenuItem(
+                          trailing: Icon(
+                            task.priority == priority
+                                ? LucideIcons.check
+                                : null,
+                            size: 16,
                           ),
+                          onPressed: () => unawaited(
+                            ref
+                                .read(
+                                  taskScheduleViewModelProvider(task).notifier,
+                                )
+                                .setPriority(priority),
+                          ),
+                          child: Text(l10n.priority(priority)),
                         ),
-                        child: Text(l10n.clearDate),
-                      ),
                     ],
-                  ],
-                  height: 36,
-                  buttonPadding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Semantics(
-                    key: const Key('task-detail-time-meta'),
-                    label: scheduleSemanticLabel,
+                    height: 36,
+                    buttonPadding: const EdgeInsets.symmetric(horizontal: 10),
                     child: ShadBadge.secondary(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -506,70 +404,178 @@ class _TaskMetadataChips extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            LucideIcons.calendar,
+                            LucideIcons.flag,
                             size: 16,
-                            key: const Key('task-detail-time-icon'),
-                            color: taskTimeColor,
+                            color: _priorityColor(task.priority, colors),
                           ),
                           const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              scheduleLabel,
-                              key: const Key('task-detail-time-label'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(color: taskTimeColor),
-                            ),
-                          ),
+                          Text('p${task.priority}'),
                         ],
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ),
-          ShadBadge.secondary(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(LucideIcons.refreshCw, size: 16),
-              const SizedBox(width: 6),
-              Text(
-                calendarLinked ? l10n.calendarLinked : l10n.calendarNotLinked,
-              ),
-            ],
-          ),
-        ),
-        ShadBadge.secondary(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(LucideIcons.timer, size: 16),
-              const SizedBox(width: 6),
-              Text(
-                l10n.focusProgress(
-                  task.completedFocusIntervals,
-                  focusEstimate ?? 0,
+            Tooltip(
+              message: l10n.scheduleTitle,
+              child: AppDateTimePicker(
+                builder: (context, picker) => ShadMenubar(
+                  key: const Key('task-detail-schedule-chip'),
+                  padding: EdgeInsets.zero,
+                  border: ShadBorder.none,
+                  backgroundColor: Colors.transparent,
+                  items: [
+                    ShadMenubarItem(
+                      focusNode: picker.focusNode,
+                      width: scheduleChipWidth,
+                      expands: scheduleChipWidth != null,
+                      items: [
+                        ShadContextMenuItem(
+                          onPressed: () => unawaited(
+                            _runScheduleQuickAction(
+                              context,
+                              ref,
+                              task,
+                              picker,
+                              _ScheduleQuickAction.today,
+                            ),
+                          ),
+                          child: Text(l10n.today),
+                        ),
+                        ShadContextMenuItem(
+                          onPressed: () => unawaited(
+                            _runScheduleQuickAction(
+                              context,
+                              ref,
+                              task,
+                              picker,
+                              _ScheduleQuickAction.tomorrow,
+                            ),
+                          ),
+                          child: Text(l10n.tomorrow),
+                        ),
+                        const Divider(height: 8),
+                        ShadContextMenuItem(
+                          onPressed: () => unawaited(
+                            _runScheduleQuickAction(
+                              context,
+                              ref,
+                              task,
+                              picker,
+                              _ScheduleQuickAction.allDay,
+                            ),
+                          ),
+                          child: Text(l10n.allDay),
+                        ),
+                        ShadContextMenuItem(
+                          onPressed: () => unawaited(
+                            _runScheduleQuickAction(
+                              context,
+                              ref,
+                              task,
+                              picker,
+                              _ScheduleQuickAction.timed,
+                            ),
+                          ),
+                          child: Text(l10n.timedBlock),
+                        ),
+                        if (task.schedule != null) ...[
+                          const Divider(height: 8),
+                          ShadContextMenuItem(
+                            onPressed: () => unawaited(
+                              _runScheduleQuickAction(
+                                context,
+                                ref,
+                                task,
+                                picker,
+                                _ScheduleQuickAction.clear,
+                              ),
+                            ),
+                            child: Text(l10n.clearDate),
+                          ),
+                        ],
+                      ],
+                      height: 36,
+                      buttonPadding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: Semantics(
+                        key: const Key('task-detail-time-meta'),
+                        label: scheduleSemanticLabel,
+                        child: ShadBadge.secondary(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 5,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                LucideIcons.calendar,
+                                size: 16,
+                                key: const Key('task-detail-time-icon'),
+                                color: taskTimeColor,
+                              ),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  scheduleLabel,
+                                  key: const Key('task-detail-time-label'),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(color: taskTimeColor),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
-        ShadBadge.secondary(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(LucideIcons.history, size: 16),
-              const SizedBox(width: 6),
-              Text(formatFocusTime(context, task.totalFocusSeconds)),
-            ],
-          ),
-        ),
+            ),
+            ShadBadge.secondary(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(LucideIcons.refreshCw, size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    calendarLinked
+                        ? l10n.calendarLinked
+                        : l10n.calendarNotLinked,
+                  ),
+                ],
+              ),
+            ),
+            ShadBadge.secondary(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(LucideIcons.timer, size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    l10n.focusProgress(
+                      task.completedFocusIntervals,
+                      focusEstimate ?? 0,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ShadBadge.secondary(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(LucideIcons.history, size: 16),
+                  const SizedBox(width: 6),
+                  Text(formatFocusTime(context, task.totalFocusSeconds)),
+                ],
+              ),
+            ),
           ],
         );
       },

@@ -29,6 +29,7 @@ class TaskListStyleSettings extends ConsumerWidget {
             children: [
               for (final option in TaskListStyle.values)
                 ChoiceChip(
+                  showCheckmark: false,
                   label: Text(
                     option == TaskListStyle.modern
                         ? l10n.settingsTaskListModern
@@ -60,6 +61,7 @@ class TaskListStyleSettings extends ConsumerWidget {
             children: [
               for (final option in TaskRowSpacing.values)
                 ChoiceChip(
+                  showCheckmark: false,
                   label: Text(switch (option) {
                     TaskRowSpacing.compact =>
                       l10n.settingsTaskRowSpacingCompact,
@@ -146,6 +148,7 @@ class _DefaultTimedBlockDurationSettingsState
                 children: [
                   for (final preset in _presets)
                     ChoiceChip(
+                      showCheckmark: false,
                       key: ValueKey('settings-default-block-$preset'),
                       label: Text(l10n.durationMinutes(preset)),
                       selected: minutes == preset,
@@ -182,6 +185,7 @@ class _DefaultTimedBlockDurationSettingsState
             runSpacing: 8,
             children: [
               ChoiceChip(
+                showCheckmark: false,
                 key: const ValueKey('settings-task-time-display-smart'),
                 label: Text(l10n.settingsTaskTimeDisplaySmart),
                 selected: timeDisplayMode == TaskTimeDisplayMode.smart,
@@ -189,6 +193,7 @@ class _DefaultTimedBlockDurationSettingsState
                     _setTimeDisplayMode(TaskTimeDisplayMode.smart),
               ),
               ChoiceChip(
+                showCheckmark: false,
                 key: const ValueKey('settings-task-time-display-range'),
                 label: Text(l10n.settingsTaskTimeDisplayRange),
                 selected: timeDisplayMode == TaskTimeDisplayMode.range,
@@ -196,6 +201,7 @@ class _DefaultTimedBlockDurationSettingsState
                     _setTimeDisplayMode(TaskTimeDisplayMode.range),
               ),
               ChoiceChip(
+                showCheckmark: false,
                 key: const ValueKey('settings-task-time-display-start-only'),
                 label: Text(l10n.settingsTaskTimeDisplayStartOnly),
                 selected: timeDisplayMode == TaskTimeDisplayMode.startOnly,
