@@ -326,6 +326,7 @@ class DesktopUpdateSettings extends ConsumerWidget {
                   ? copy.stable
                   : copy.rcChannel,
               subtitle: copy.phase(controller.phase),
+              controlWidth: 320,
               control: Align(
                 alignment: AlignmentDirectional.centerEnd,
                 child: ShadButton.outline(

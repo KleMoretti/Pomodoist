@@ -65,6 +65,43 @@ extension AppL10nUpstreamAdditions on AppLocalizations {
   String get settingsBottomNavigationEdit => _isChinese ? '自定义' : 'Customize';
 
   String get settingsBottomNavigationRemove => _isChinese ? '移除' : 'Remove';
+
+  String billingOfferDays(int count) => _isChinese
+      ? '$count 天'
+      : '$count ${count == 1 ? 'day' : 'days'}';
+
+  String billingOfferMonths(int count) => _isChinese
+      ? '$count 个月'
+      : '$count ${count == 1 ? 'month' : 'months'}';
+
+  String billingOfferYears(int count) => _isChinese
+      ? '$count 年'
+      : '$count ${count == 1 ? 'year' : 'years'}';
+
+  String billingTrialFree(String duration) => _isChinese
+      ? '免费试用 $duration'
+      : 'Free for $duration';
+
+  String get billingReturnFailed => _isChinese
+      ? '无法验证回归优惠。请重试以检查折扣。'
+      : 'Could not verify your return offer. Retry to check the discount.';
+
+  String billingReturnPending(String date) => _isChinese
+      ? '你的优惠已保留至 $date。如果取消了购买，可在此时间之后重试。'
+      : 'Your discount is reserved until $date. If the purchase was cancelled, '
+          'you can retry after that time.';
+
+  String billingTrialRenewal(String price) => _isChinese
+      ? '之后为 $price。除非取消，否则将自动续订。'
+      : 'Then $price. Renews automatically unless cancelled.';
+
+  String billingReturnSubtitle(String duration, String price) => _isChinese
+      ? '优惠持续 $duration，之后为 $price。除非取消，否则将自动续订。'
+      : 'For $duration, then $price. Renews automatically unless cancelled.';
+
+  String get billingReturnBadge => _isChinese ? '重返 Pro' : 'Return to Pro';
+
+  String get billingTryFree => _isChinese ? '免费试用' : 'Try free';
 }
 
 extension AppL10nContext on BuildContext {

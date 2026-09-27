@@ -14,7 +14,8 @@ extension NotificationCopyLocalizations on AppLocalizations {
     returnDescription: notificationReturnDescription,
     openApp: notificationOpenApp,
     taskStarting: notificationTaskStarting,
-    returnTitle: notificationReturnTitle,
-    returnBody: notificationReturnBody,
+    returnMessages: [
+      (title: notificationReturnTitle, body: notificationReturnBody),
+    ],
   );
 }

@@ -78,7 +78,7 @@ void main() {
   });
 
   testWidgets(
-    'Android preserves account access without initializing StoreKit',
+    'Android preserves personal-edition access without initializing StoreKit',
     (tester) async {
       final previousPlatform = debugDefaultTargetPlatformOverride;
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
@@ -102,7 +102,8 @@ void main() {
         final state = container.read(billingViewModelProvider);
         expect(state.loading, isFalse);
         expect(state.canPurchase, isFalse);
-        expect(state.accountEntitlementActive, isTrue);
+        expect(state.accountEntitlementActive, isFalse);
+        expect(state.environmentEntitlementActive, isTrue);
         expect(state.hasActiveEntitlement, isTrue);
       } finally {
         debugDefaultTargetPlatformOverride = previousPlatform;

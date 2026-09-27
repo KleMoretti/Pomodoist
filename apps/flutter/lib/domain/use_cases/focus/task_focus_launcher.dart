@@ -12,27 +12,39 @@ class TaskFocusLauncher {
   bool _starting = false;
 
   Future<bool> open(
-    TaskItem task, {
+    TaskItem? task, {
     required FocusPresetItem? preset,
+    int? targetWorkIntervals,
     required Future<bool> Function() confirmSwitch,
   }) async {
-    if (_starting || task.isCompleted || task.isDeleted) return false;
+    if (targetWorkIntervals != null &&
+        (targetWorkIntervals < 1 || targetWorkIntervals > 999)) {
+      throw ArgumentError.value(
+        targetWorkIntervals,
+        'targetWorkIntervals',
+        'must be between 1 and 999',
+      );
+    }
+    if (_starting || task?.isCompleted == true || task?.isDeleted == true) {
+      return false;
+    }
     _starting = true;
     try {
       var active = await repository.watchActiveRun().first;
-      while (active != null && active.taskId != task.id) {
+      while (active != null && active.taskId != task?.id) {
         if (!await confirmSwitch()) return false;
         final latest = await repository.watchActiveRun().first;
         if (latest?.id == active.id) break;
         // A different session appeared while the confirmation was open.
         active = latest;
       }
-      if (active?.taskId == task.id) return true;
-      final estimate = targetFocusIntervalsForTask(task, preset);
+      if (active?.taskId == task?.id) return true;
+      final estimate = targetWorkIntervals ??
+          (task == null ? null : targetFocusIntervalsForTask(task, preset));
       final result = await repository.startRun(
         StartFocusRunInput(
-          taskId: task.id,
-          projectId: task.projectId,
+          taskId: task?.id,
+          projectId: task?.projectId,
           presetId: preset?.id,
           targetWorkIntervals: estimate == null
               ? null

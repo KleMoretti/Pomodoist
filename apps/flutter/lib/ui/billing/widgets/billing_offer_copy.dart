@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:pomodoist/domain/models/billing/billing_models.dart';
+import 'package:pomodoist/ui/core/localization/app_l10n.dart';
 import 'package:pomodoist/ui/core/localization/app_localizations.dart';
 
 bool billingReturnOfferBlocksPurchase(

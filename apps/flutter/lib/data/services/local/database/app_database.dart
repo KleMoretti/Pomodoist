@@ -70,6 +70,7 @@ class Workspaces extends Table {
 
 @DataClassName('ProjectRow')
 class Projects extends Table {
+  TextColumn get scopeId => text().nullable()();
   TextColumn get icon => text().nullable()();
   TextColumn get id => text()();
   TextColumn get userId => text()();
@@ -121,6 +122,10 @@ class Sections extends Table {
 )
 @DataClassName('TaskRow')
 class Tasks extends Table {
+  TextColumn get scopeId => text().nullable()();
+  TextColumn get createdBy => text().nullable()();
+  TextColumn get completedBy => text().nullable()();
+  TextColumn get assigneeIdsJson => text().withDefault(const Constant('[]'))();
   TextColumn get id => text()();
   TextColumn get userId => text()();
   TextColumn get content => text()();
@@ -164,11 +169,12 @@ class TaskCompletions extends Table {
 
 @TableIndex.sql(
   'CREATE UNIQUE INDEX labels_unique_kanban_system_key '
-  'ON labels (system_key) '
+  "ON labels (COALESCE(scope_id, ''), system_key) "
   "WHERE kind = 'kanbanStatus' AND system_key IS NOT NULL",
 )
 @DataClassName('LabelRow')
 class Labels extends Table {
+  TextColumn get scopeId => text().nullable()();
   TextColumn get id => text()();
   TextColumn get userId => text()();
   TextColumn get name => text()();
@@ -364,6 +370,8 @@ class FocusDailyStats extends Table {
 
 @DataClassName('SyncCommandRow')
 class SyncCommands extends Table {
+  TextColumn get scopeId => text().nullable()();
+  IntColumn get baseRevision => integer().withDefault(const Constant(0))();
   TextColumn get id => text()();
   TextColumn get uuid => text().unique()();
   TextColumn get type => text()();
@@ -442,9 +450,34 @@ class IdMappings extends Table {
   Set<Column<Object>> get primaryKey => {localId, entityType};
 }
 
+@DataClassName('SharedScopeRow')
+class SharedScopes extends Table {
+  TextColumn get id => text()();
+  TextColumn get dataJson => text()();
+  IntColumn get cursor => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+@DataClassName('SharedEntityRow')
+class SharedEntities extends Table {
+  TextColumn get scopeId => text()();
+  TextColumn get entityType => text()();
+  TextColumn get entityId => text()();
+  TextColumn get dataJson => text()();
+  IntColumn get serverRevision => integer().withDefault(const Constant(0))();
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {scopeId, entityType, entityId};
+}
+
 @DriftDatabase(
   tables: [
     Users,
+    SharedScopes,
+    SharedEntities,
     Workspaces,
     Projects,
     Sections,
@@ -485,12 +518,54 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
     onUpgrade: (m, from, to) async {
+      if (from < 8) {
+        await _runResumableMigrationStep(
+          () => m.createTable(sharedScopes),
+          alreadyAppliedMessage: 'already exists',
+        );
+        await _runResumableMigrationStep(
+          () => m.createTable(sharedEntities),
+          alreadyAppliedMessage: 'already exists',
+        );
+        await _runResumableMigrationStep(
+          () => m.addColumn(projects, projects.scopeId),
+          alreadyAppliedMessage: 'duplicate column name: scope_id',
+        );
+        await _runResumableMigrationStep(
+          () => m.addColumn(labels, labels.scopeId),
+          alreadyAppliedMessage: 'duplicate column name: scope_id',
+        );
+        await _runResumableMigrationStep(
+          () => m.addColumn(tasks, tasks.scopeId),
+          alreadyAppliedMessage: 'duplicate column name: scope_id',
+        );
+        await _runResumableMigrationStep(
+          () => m.addColumn(tasks, tasks.createdBy),
+          alreadyAppliedMessage: 'duplicate column name: created_by',
+        );
+        await _runResumableMigrationStep(
+          () => m.addColumn(tasks, tasks.completedBy),
+          alreadyAppliedMessage: 'duplicate column name: completed_by',
+        );
+        await _runResumableMigrationStep(
+          () => m.addColumn(tasks, tasks.assigneeIdsJson),
+          alreadyAppliedMessage: 'duplicate column name: assignee_ids_json',
+        );
+        await _runResumableMigrationStep(
+          () => m.addColumn(syncCommands, syncCommands.scopeId),
+          alreadyAppliedMessage: 'duplicate column name: scope_id',
+        );
+        await _runResumableMigrationStep(
+          () => m.addColumn(syncCommands, syncCommands.baseRevision),
+          alreadyAppliedMessage: 'duplicate column name: base_revision',
+        );
+      }
       if (from < 2) {
         await m.createTable(googleCalendarConnections);
         await m.createTable(googleCalendarEventLinks);
@@ -525,7 +600,7 @@ class AppDatabase extends _$AppDatabase {
         );
         await customStatement(
           'CREATE UNIQUE INDEX IF NOT EXISTS labels_unique_kanban_system_key '
-          'ON labels (system_key) '
+          "ON labels (COALESCE(scope_id, ''), system_key) "
           "WHERE kind = 'kanbanStatus' AND system_key IS NOT NULL",
         );
         await customStatement(
@@ -543,6 +618,16 @@ class AppDatabase extends _$AppDatabase {
           'CREATE INDEX IF NOT EXISTS tasks_active_children_by_parent '
           'ON tasks (parent_id, status, id) '
           'WHERE parent_id IS NOT NULL AND is_deleted = 0',
+        );
+      }
+      if (from < 8) {
+        await customStatement(
+          'DROP INDEX IF EXISTS labels_unique_kanban_system_key',
+        );
+        await customStatement(
+          "CREATE UNIQUE INDEX labels_unique_kanban_system_key "
+          "ON labels (COALESCE(scope_id, ''), system_key) "
+          "WHERE kind = 'kanbanStatus' AND system_key IS NOT NULL",
         );
       }
       if (from < 7) {
@@ -627,8 +712,25 @@ class AppDatabase extends _$AppDatabase {
       });
     }
 
+    await backfillTaskCreators();
     await _ensureSeedFocusPresets(now);
     await ensureKanbanData(now: now);
+  }
+
+  Future<void> backfillTaskCreators({String? accountUserId}) async {
+    final owner =
+        accountUserId ??
+        (await (select(syncState)
+                  ..where((row) => row.id.equals('pomodoist-account-owner-v1')))
+                .getSingleOrNull())
+            ?.cursor;
+    final creator = owner == null || owner == 'guest' ? localUserId : owner;
+    await (update(tasks)..where(
+          (row) =>
+              row.scopeId.isNull() &
+              (row.createdBy.isNull() | row.createdBy.equals(localUserId)),
+        ))
+        .write(TasksCompanion(createdBy: Value(creator)));
   }
 
   Future<void> resetAccountData() async {
@@ -636,6 +738,8 @@ class AppDatabase extends _$AppDatabase {
       await delete(googleCalendarEventLinks).go();
       await delete(googleCalendarConnections).go();
       await delete(idMappings).go();
+      await delete(sharedEntities).go();
+      await delete(sharedScopes).go();
       await delete(syncCommands).go();
       await delete(syncState).go();
       await delete(focusEvents).go();
@@ -778,6 +882,7 @@ class AppDatabase extends _$AppDatabase {
     };
 
     for (final task in tasksToRepair) {
+      if (task.scopeId != null) continue;
       final currentStatusId = statusByTask[task.id];
       final expectedStatusId = task.status == 'completed'
           ? kanbanStatusDoneId

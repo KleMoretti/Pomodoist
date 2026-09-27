@@ -124,8 +124,13 @@ class _FocusStartDialogState extends ConsumerState<_FocusStartDialog> {
       if (opened) {
         // Saving a convenience preference must not turn a successful start
         // into an error or invite a second session.
-        unawaited(ref.read(lastFocusPresetIdProvider.notifier)
-          .setPresetId(_preset.id).catchError((Object _) {}));
+        unawaited(
+          ref
+              .read(focusPreferencesRepositoryProvider)
+              .setPresetId(_preset.id)
+              .then<void>((result) => result.getOrThrow())
+              .catchError((Object _) {}),
+        );
         Navigator.pop(context, true);
       }
     } catch (_) {
