@@ -6,7 +6,7 @@ import { existsSync } from "node:fs";
 
 import { registerPomodoistTools } from "./tools.ts";
 
-Deno.test("registers personal tools and shared project collaboration", async () => {
+Deno.test("registers exactly the 23 Pomodoist V1 tools", async () => {
   await withClient(() => Promise.reject(new Error("unexpected fetch")), async (
     client,
   ) => {
@@ -39,16 +39,11 @@ Deno.test("registers personal tools and shared project collaboration", async () 
       "delete_kanban_status",
       "configure_kanban",
       "move_task_on_kanban",
-      "shared_projects",
     ]);
     for (const tool of listed.tools) {
       assertEquals(tool.inputSchema.additionalProperties, false, tool.name);
       assert(tool.outputSchema, `${tool.name} lacks outputSchema`);
-      assertEquals(
-        tool.annotations?.openWorldHint,
-        tool.name === "shared_projects",
-        tool.name,
-      );
+      assertEquals(tool.annotations?.openWorldHint, false, tool.name);
       const schema = JSON.stringify(tool.inputSchema);
       for (
         const excluded of [
