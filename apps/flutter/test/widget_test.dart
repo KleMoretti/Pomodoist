@@ -915,7 +915,7 @@ void main() {
     final celebrationScrollable = find.descendant(
       of: find.byKey(const PageStorageKey<String>('settings-tasksFocus')),
       matching: find.byType(Scrollable),
-    );
+    ).first;
     await tester.scrollUntilVisible(
       celebration,
       200,

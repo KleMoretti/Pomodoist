@@ -29,12 +29,20 @@ class BottomNavigationSettings extends ConsumerWidget {
               children: [
                 Text(l10n.settingsBottomNavigationLoadError),
                 ShadButton.outline(
+                  width: double.infinity,
+                  expands: true,
                   onPressed: () => ref.invalidate(bottomNavigationProvider),
-                  child: Text(l10n.commonRetry),
+                  child: Text(
+                    l10n.commonRetry,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
             data: (preferences) => ShadButton.outline(
+              width: double.infinity,
+              expands: true,
               onPressed: () => showDialog<void>(
                 context: context,
                 builder: (_) => _NavigationEditor(
@@ -42,7 +50,11 @@ class BottomNavigationSettings extends ConsumerWidget {
                   onSave: ref.read(bottomNavigationProvider.notifier).save,
                 ),
               ),
-              child: Text(l10n.settingsBottomNavigationEdit),
+              child: Text(
+                l10n.settingsBottomNavigationEdit,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
         ),
