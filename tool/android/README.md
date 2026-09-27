@@ -14,8 +14,10 @@ label and deep-link scheme:
 flavors in `apps/flutter/android/app/build.gradle.kts` and the per-flavor
 manifests under `apps/flutter/android/app/src/<flavor>/` must match it, and
 `tool/android/test_android_release.py` fails when they drift. The Kotlin
-namespace stays `com.finchforge.pomodoist` for all three, so `.MainActivity`
-resolves identically everywhere.
+namespace stays `com.finchforge.pomodoist` for all three, so the manifest's
+`.MainActivity` resolves identically everywhere. The device smoke script uses
+the fully qualified `com.finchforge.pomodoist.MainActivity` component because
+`adb am start` resolves a relative component against the flavor application ID.
 
 The launcher label reaches `android:label` through the `appLabel` manifest
 placeholder that each flavor sets in `app/build.gradle.kts`, not through a

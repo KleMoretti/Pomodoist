@@ -1063,32 +1063,36 @@ void main() {
     await _disposeApp(tester);
   });
 
-  testWidgets('shared project badge follows the project name', (tester) async {
-    final harness = await _pumpWideApp(
-      tester,
-      workProjectScopeId: _workProjectScopeId,
-    );
+  testWidgets(
+    'shared project badge follows the project name',
+    (tester) async {
+      final harness = await _pumpWideApp(
+        tester,
+        workProjectScopeId: _workProjectScopeId,
+      );
 
-    _expectBadgeFollowsName(
-      tester,
-      row: find.byKey(ValueKey('sidebar-project-${harness.workProjectId}')),
-      name: 'Work',
-      count: '1',
-    );
+      _expectBadgeFollowsName(
+        tester,
+        row: find.byKey(ValueKey('sidebar-project-${harness.workProjectId}')),
+        name: 'Work',
+        count: '1',
+      );
 
-    await tester.tap(find.byKey(const Key('sidebar-projects-link')));
-    await _pumpFrames(tester);
+      await tester.tap(find.byKey(const Key('sidebar-projects-link')));
+      await _pumpFrames(tester);
 
-    _expectBadgeFollowsName(
-      tester,
-      row: find.byKey(
-        ValueKey('projects-screen-project-${harness.workProjectId}'),
-      ),
-      name: 'Work',
-      count: '1',
-    );
-    await _disposeApp(tester);
-  });
+      _expectBadgeFollowsName(
+        tester,
+        row: find.byKey(
+          ValueKey('projects-screen-project-${harness.workProjectId}'),
+        ),
+        name: 'Work',
+        count: '1',
+      );
+      await _disposeApp(tester);
+    },
+    skip: personalEdition,
+  );
 
   testWidgets('shared project badge stays beside a truncated name', (
     tester,
@@ -1126,7 +1130,7 @@ void main() {
       count: '1',
     );
     await _disposeApp(tester);
-  });
+  }, skip: personalEdition);
 
   testWidgets('a project without a scope renders no badge', (tester) async {
     final harness = await _pumpWideApp(tester);
@@ -1366,6 +1370,13 @@ Future<_SidebarHarness> _pumpApp(
         focusRepositoryProvider.overrideWithValue(FakeFocusRepository()),
         applePurchasesSupportedProvider.overrideWithValue(false),
         billingAccountEntitlementProvider.overrideWithValue(hasAccountPro),
+        billingAccessProvider.overrideWithValue(
+          AsyncData((
+            hasActiveEntitlement: hasAccountPro,
+            hasLocalStoreKitEntitlement: false,
+            loading: false,
+          )),
+        ),
         if (voiceController != null)
           voiceRecognitionControllerProvider.overrideWithValue(voiceController),
         accountProfileProvider.overrideWith(

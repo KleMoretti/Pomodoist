@@ -18,6 +18,11 @@ case "$flavor" in
     exit 64
     ;;
 esac
+# The activity class stays in the shared namespace while the application ID
+# changes per flavor. Use its fully qualified name for `am start`; the
+# shorthand "$package/.MainActivity" would incorrectly look under the flavor
+# package (for example, com.finchforge.pomodoist.dev.MainActivity).
+activity=com.finchforge.pomodoist.MainActivity
 cd "$repo_root/apps/flutter"
 adb install -r "build/app/outputs/flutter-apk/app-$flavor-release.apk"
 adb logcat -c
@@ -29,9 +34,9 @@ start_activity() {
   sleep 3
   adb shell pidof "$package" >/dev/null
 }
-start_activity -n "$package/.MainActivity"
+start_activity -n "$package/$activity"
 adb shell input keyevent KEYCODE_HOME
-start_activity -n "$package/.MainActivity"
+start_activity -n "$package/$activity"
 for host in focus login-callback google-calendar-connected captcha-callback; do
   start_activity -a android.intent.action.VIEW -d "$scheme://$host" -p "$package"
 done

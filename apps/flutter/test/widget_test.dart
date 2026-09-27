@@ -918,7 +918,7 @@ void main() {
       scrollable: find.byType(Scrollable).last,
     );
     await tester.tap(celebration);
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getBool('focus.completionCelebration.enabled'), isFalse);

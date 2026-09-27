@@ -281,6 +281,7 @@ void main() {
     expect(find.text('Agent A'), findsOneWidget);
 
     container.updateOverrides([
+      ..._stableRouterOverrides(),
       accountClientProvider.overrideWithValue(accountB),
       accountAuthStateProvider.overrideWithValue(
         const AsyncData(

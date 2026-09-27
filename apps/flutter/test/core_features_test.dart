@@ -1163,18 +1163,18 @@ void main() {
       expect(titles, List.filled(6, 'Помидор скучает'));
       expect(
         russian.returnMessageFor(DateTime(2026, 1, 1)).body,
-        'Если есть силы, заверши одну небольшую задачу',
+        'Один фокус или одна галочка — и день уже не зря.',
       );
       final english = lookupAppLocalizations(
         resolveAppLocale(AppLanguage.en),
       ).notificationCopy;
       expect(
         english.returnMessageFor(DateTime(2026, 1, 1)).title,
-        'Pomo misses you',
+        'Your tomato misses you',
       );
       expect(
         english.returnMessageFor(DateTime(2026, 1, 1)).body,
-        isNot(contains('focus')),
+        'One focus or one checkmark is enough to save the day.',
       );
     });
 
@@ -1255,7 +1255,10 @@ void main() {
 
         expect(scheduler.permissionRequestCount, 1);
         expect(scheduler.scheduledReengagementAt, DateTime(2026, 5, 1, 20, 30));
-        expect(scheduler.scheduledReengagementTitle, contains('Pomo'));
+        expect(
+          scheduler.scheduledReengagementTitle,
+          'Your tomato misses you',
+        );
 
         await notifications.syncReengagementReminder(
           enabled: false,
@@ -1280,7 +1283,7 @@ void main() {
         );
 
         expect(scheduler.scheduledReengagementAt, DateTime(2026, 5, 2, 20, 30));
-        expect(scheduler.scheduledReengagementTitle, contains('Помо'));
+        expect(scheduler.scheduledReengagementTitle, 'Помидор скучает');
       },
     );
 

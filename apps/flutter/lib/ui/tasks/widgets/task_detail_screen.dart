@@ -504,10 +504,14 @@ class _TaskMetadataChips extends ConsumerWidget {
                             color: taskTimeColor,
                           ),
                           const SizedBox(width: 6),
-                          Text(
-                            scheduleLabel,
-                            key: const Key('task-detail-time-label'),
-                            style: TextStyle(color: taskTimeColor),
+                          Flexible(
+                            child: Text(
+                              scheduleLabel,
+                              key: const Key('task-detail-time-label'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: taskTimeColor),
+                            ),
                           ),
                         ],
                       ),

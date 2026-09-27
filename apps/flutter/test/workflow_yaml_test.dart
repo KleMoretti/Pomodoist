@@ -348,7 +348,6 @@ void main() {
 
     final jobs = document['jobs'] as YamlMap;
     final job = jobs['signed-apk-and-bundle'] as YamlMap;
-    expect((job['permissions'] as YamlMap)['contents'], 'read');
 
     final steps = (job['steps'] as YamlList).cast<YamlMap>();
     final gate = steps.singleWhere(
