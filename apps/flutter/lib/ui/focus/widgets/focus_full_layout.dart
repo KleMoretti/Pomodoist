@@ -164,14 +164,13 @@ class _FocusControlDock extends StatelessWidget {
               ),
               primary,
               Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                child: Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
                     ?secondary,
-                    if (menu != null) ...[
-                      const SizedBox(width: 8),
-                      menu!,
-                    ],
+                    ?menu,
                   ],
                 ),
               ),

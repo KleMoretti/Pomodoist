@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pomodoist/ui/core/platform/legal_urls.dart';
 import 'package:pomodoist/config/billing_store_dependencies.dart';
 import 'package:pomodoist/domain/models/billing/billing_models.dart';
+import 'package:pomodoist/domain/models/personal_edition.dart';
 import 'package:pomodoist/ui/billing/view_models/billing_view_model.dart';
 import 'package:pomodoist/ui/settings/widgets/app_info_card.dart';
 import 'package:pomodoist/ui/settings/widgets/settings_subscription.dart';
@@ -77,7 +78,8 @@ void main() {
     expect(find.byKey(const Key('settings-app-info-card')), findsOneWidget);
     expect(find.text('Version'), findsOneWidget);
     expect(find.text('2.4.1 (37)'), findsOneWidget);
-    expect(find.text('Plan: Free'), findsOneWidget);
+    // The personal edition does not expose a hosted subscription plan.
+    expect(find.text('Plan: Free'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -235,7 +237,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Plan: Monthly'), findsOneWidget);
-  });
+  }, skip: personalEdition);
 
   testWidgets('shows Annual for an active annual plan', (tester) async {
     await tester.pumpWidget(
@@ -274,7 +276,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Plan: Annual'), findsOneWidget);
-  });
+  }, skip: personalEdition);
 
   testWidgets('shows Lifetime for an active lifetime plan', (tester) async {
     await tester.pumpWidget(
@@ -313,7 +315,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Plan: Lifetime'), findsOneWidget);
-  });
+  }, skip: personalEdition);
 
   testWidgets('shows Pro without exposing an unknown active product id', (
     tester,
@@ -356,7 +358,7 @@ void main() {
 
     expect(find.text('Plan: Pomodoist Pro'), findsOneWidget);
     expect(find.text(unknownProductId), findsNothing);
-  });
+  }, skip: personalEdition);
 
   testWidgets('updates the displayed plan when billing state changes', (
     tester,
@@ -403,7 +405,7 @@ void main() {
 
     expect(find.text('Plan: Monthly'), findsOneWidget);
     expect(find.text('Plan: Free'), findsNothing);
-  });
+  }, skip: personalEdition);
 }
 
 class _StaticBillingViewModel extends BillingViewModel {

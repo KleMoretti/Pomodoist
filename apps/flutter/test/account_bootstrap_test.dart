@@ -156,7 +156,8 @@ void main() {
 
     expect(find.byKey(const Key('account-bootstrap-error')), findsOneWidget);
     expect(find.byKey(const Key('account-bootstrap-retry')), findsOneWidget);
-    expect(find.text('Subscription options'), findsOneWidget);
+    // Subscription settings are intentionally absent from the personal edition.
+    expect(find.text('Subscription options'), findsNothing);
 
     await tester.tap(find.byKey(const Key('account-bootstrap-retry')));
     await tester.pump(const Duration(milliseconds: 20));

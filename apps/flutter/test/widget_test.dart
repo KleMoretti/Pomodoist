@@ -14,6 +14,7 @@ import 'package:pomodoist/ui/core/view_models/app_theme_mode_view_model.dart';
 import 'package:pomodoist/config/providers.dart';
 import 'package:pomodoist/config/productivity_dependencies.dart';
 import 'package:pomodoist/domain/models/settings/task_preferences.dart';
+import 'package:pomodoist/domain/models/settings/app_language.dart';
 import 'package:pomodoist/ui/core/widgets/action_feedback.dart';
 import 'package:pomodoist/ui/core/widgets/adaptive_shell.dart';
 import 'package:pomodoist/ui/core/widgets/mini_focus_player.dart';
@@ -34,7 +35,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   setUpAll(loadTestAppResources);
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({
+      appLanguagePreferenceKey: AppLanguage.en.storageValue,
+      appLanguageChineseMigrationKey: true,
+    });
   });
 
   test('AppThemeMode parses stored values', () {
@@ -908,6 +912,11 @@ void main() {
     );
     await tester.ensureVisible(celebration);
     expect(celebration, findsOneWidget);
+    await tester.scrollUntilVisible(
+      celebration,
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(celebration);
     await tester.pump();
 

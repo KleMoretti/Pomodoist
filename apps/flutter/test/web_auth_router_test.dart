@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pomodoist/config/account_providers.dart';
+import 'package:pomodoist/config/providers.dart';
 import 'package:pomodoist/routing/router.dart';
 
 void main() {
@@ -15,6 +16,7 @@ void main() {
     final authStates = StreamController<({String? userId, int generation})>();
     final container = ProviderContainer(
       overrides: [
+        ..._stableRouterOverrides(),
         accountClientProvider.overrideWithValue(null),
         accountSessionProvider.overrideWith((ref) => authStates.stream),
       ],
@@ -45,6 +47,7 @@ void main() {
     final account = _MutableAccountClient()..userId = 'user';
     final container = ProviderContainer(
       overrides: [
+        ..._stableRouterOverrides(),
         accountClientProvider.overrideWithValue(account),
         accountAuthStateProvider.overrideWithValue(const AsyncLoading()),
       ],
@@ -84,6 +87,7 @@ void main() {
     final account = _MutableAccountClient()..userId = 'user';
     final container = ProviderContainer(
       overrides: [
+        ..._stableRouterOverrides(),
         accountClientProvider.overrideWithValue(account),
         // The auth stream can report a stale signed-out snapshot while the
         // live session is intact, so the router must still see a signed-in
@@ -127,6 +131,7 @@ void main() {
       final account = _MutableAccountClient()..userId = 'user';
       final container = ProviderContainer(
         overrides: [
+          ..._stableRouterOverrides(),
           accountClientProvider.overrideWithValue(account),
           accountAuthStateProvider.overrideWithValue(const AsyncLoading()),
         ],
@@ -176,6 +181,7 @@ void main() {
       ..userId = 'A';
     final container = ProviderContainer(
       overrides: [
+        ..._stableRouterOverrides(),
         accountClientProvider.overrideWithValue(account),
         accountAuthStateProvider.overrideWith((ref) => authStates.stream),
       ],
@@ -241,6 +247,7 @@ void main() {
       ..userId = 'user';
     final container = ProviderContainer(
       overrides: [
+        ..._stableRouterOverrides(),
         accountClientProvider.overrideWithValue(accountA),
         accountAuthStateProvider.overrideWithValue(
           const AsyncData(
@@ -342,6 +349,15 @@ void main() {
   });
 
 }
+
+List<Override> _stableRouterOverrides() => [
+  // Consent-route tests should not start the production account/install
+  // registration or one-second focus ticker side effects.
+  accountOverviewProvider.overrideWith((ref) async => null),
+  focusTickerProvider.overrideWith(
+    (ref) => Stream.value(DateTime.utc(2026, 9, 27)),
+  ),
+];
 
 String _routerUri(GoRouter router) =>
     router.routeInformationProvider.value.uri.toString();

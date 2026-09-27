@@ -38,7 +38,9 @@ class TaskFocusLauncher {
         // A different session appeared while the confirmation was open.
         active = latest;
       }
-      if (active?.taskId == task?.id) return true;
+      // A null task is an intentional unlinked focus target. It must not
+      // match the absence of an active run and short-circuit the start.
+      if (task != null && active?.taskId == task.id) return true;
       final estimate = targetWorkIntervals ??
           (task == null ? null : targetFocusIntervalsForTask(task, preset));
       final result = await repository.startRun(

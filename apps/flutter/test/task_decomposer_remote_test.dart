@@ -12,6 +12,7 @@ import 'package:pomodoist/data/repositories/voice/voice_capture_repository.dart'
 import 'package:pomodoist/data/services/billing/billing_store.dart';
 import 'package:pomodoist/data/services/planning/task_decomposer.dart';
 import 'package:pomodoist/domain/models/billing/billing_models.dart';
+import 'package:pomodoist/domain/models/personal_edition.dart';
 import 'package:pomodoist/domain/models/planning/task_decomposition.dart';
 import 'package:pomodoist/domain/models/voice/voice_capture_state.dart';
 import 'package:pomodoist/ui/voice/view_models/voice_quick_add_view_model.dart';
@@ -112,10 +113,10 @@ void main() {
               locale: 'en',
             );
         expect(tasks.single.quickAdd, 'Buy milk');
-        expect(reads, signedIn ? 0 : 1);
+        expect(reads, personalEdition || signedIn ? 0 : 1);
         expect(
           account.body?['storeTransactions'],
-          signedIn ? isEmpty : ['verified-proof'],
+          personalEdition || signedIn ? isEmpty : ['verified-proof'],
         );
       },
     );

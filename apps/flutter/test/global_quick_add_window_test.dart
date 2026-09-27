@@ -7,15 +7,22 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pomodoist/ui/quick_add/widgets/global_quick_add_window.dart';
 import 'package:pomodoist/config/billing_dependencies.dart';
 import 'package:pomodoist/config/billing_store_dependencies.dart';
+import 'package:pomodoist/config/app_language.dart';
 import 'package:pomodoist/config/providers.dart';
 import 'package:pomodoist/config/voice_dependencies.dart';
 import 'package:pomodoist/data/services/local/database/app_database.dart';
 import 'package:pomodoist/domain/models/billing/billing_access.dart';
+import 'package:pomodoist/domain/models/settings/app_language.dart';
 import 'package:pomodoist/ui/tasks/widgets/quick_add_bar.dart';
 import '../testing/fakes/fake_focus_repository.dart';
 
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  setUp(
+    () => SharedPreferences.setMockInitialValues({
+      appLanguagePreferenceKey: AppLanguage.en.storageValue,
+      appLanguageChineseMigrationKey: true,
+    }),
+  );
   testWidgets('global voice window follows expansion and keeps composer text', (
     tester,
   ) async {

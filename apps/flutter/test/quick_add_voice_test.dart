@@ -32,6 +32,7 @@ import 'package:pomodoist/config/billing_store_dependencies.dart';
 import 'package:pomodoist/data/services/billing/billing_store.dart';
 import 'package:pomodoist/domain/models/billing/billing_access.dart';
 import 'package:pomodoist/domain/models/billing/billing_models.dart';
+import 'package:pomodoist/domain/models/personal_edition.dart';
 import 'package:pomodoist/ui/onboarding/widgets/onboarding_gate.dart';
 import 'package:pomodoist/domain/use_cases/quick_add/quick_add_use_case.dart';
 import 'package:pomodoist/domain/models/tasks/task_models.dart';
@@ -664,7 +665,9 @@ void main() {
     controller.dispose();
   });
 
-  test('logged-out Pro sends StoreKit proof for analysis', () async {
+  test(
+    'logged-out Pro sends StoreKit proof for analysis',
+    () async {
     final httpClient = _FunctionHttpClient();
 
     final account = AccountClient.fromSupabaseClient(
@@ -711,7 +714,9 @@ void main() {
       },
       'storeTransactions': ['signed-pomodoist'],
     });
-  });
+    },
+    skip: personalEdition,
+  );
 
   testWidgets('quick add suggestions insert project and label tokens', (
     tester,
@@ -2034,7 +2039,9 @@ void main() {
     },
   );
 
-  testWidgets('voice quick add opens paywall without Pro', (tester) async {
+  testWidgets(
+    'voice quick add opens paywall without Pro',
+    (tester) async {
     final startedAt = DateTime.utc(2026, 1, 1, 10);
     SharedPreferences.setMockInitialValues({
       launchOfferStartedAtPreferenceKey: startedAt.toIso8601String(),
@@ -2083,11 +2090,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('billing-paywall')), findsNothing);
-  });
+    },
+    skip: personalEdition,
+  );
 
-  testWidgets('voice paywall hides Lifetime promo outside the weekly window', (
-    tester,
-  ) async {
+  testWidgets(
+    'voice paywall hides Lifetime promo outside the weekly window',
+    (tester) async {
     final startedAt = DateTime.utc(2026, 1, 1, 10);
     SharedPreferences.setMockInitialValues({
       launchOfferStartedAtPreferenceKey: startedAt.toIso8601String(),
@@ -2130,7 +2139,9 @@ void main() {
       find.byKey(const ValueKey('billing-plan-pomodoist.pro.lifetime')),
       findsOneWidget,
     );
-  });
+    },
+    skip: personalEdition,
+  );
 
   testWidgets('voice Smart mode is restored and sent to decomposition', (
     tester,

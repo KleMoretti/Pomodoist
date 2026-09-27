@@ -3746,7 +3746,9 @@ void main() {
 
     router.go('/browse');
     await _pumpFrames(tester);
-    await tester.tap(find.byKey(const Key('browse-completed-tasks')));
+    final completedLink = find.byKey(const Key('browse-completed-tasks'));
+    await tester.ensureVisible(completedLink);
+    await tester.tap(completedLink);
     await _pumpFrames(tester);
 
     expect(_routerUri(router), '/browse/completed');

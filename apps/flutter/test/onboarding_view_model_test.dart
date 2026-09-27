@@ -72,7 +72,7 @@ void main() {
       controller.back();
       expect(
         container.read(onboardingViewModelProvider).step,
-        OnboardingStep.paywall,
+        OnboardingStep.timer,
       );
       controller.selectStep(OnboardingStep.language);
       controller.back();

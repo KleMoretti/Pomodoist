@@ -33,6 +33,7 @@ void main() {
         reason: 'link step not before pub get in ${entry.key}: $steps',
       );
       final script = steps[versionIndex]['run'] as String;
+      final tagAware = entry.key.contains('linux-appimage');
       for (final (tag, newline) in [
         ('v1.0.3', '\n'),
         ('v1.0.3-rc.1', '\n'),
@@ -52,8 +53,10 @@ void main() {
             'GITHUB_REF_NAME': tag,
           });
           expect(result.exitCode, 0, reason: '${result.stderr}');
-          final expected = tag == 'main' ? '0.9.0' : tag.substring(1);
-          final expectedNewline = tag == 'main' ? newline : '\n';
+          final expected = tagAware
+              ? (tag == 'main' ? '0.9.0' : tag.substring(1))
+              : '0.9.0';
+          final expectedNewline = tagAware && tag != 'main' ? '\n' : newline;
           expect(
             pubspec.readAsStringSync(),
             'name: pomodoist${expectedNewline}version: $expected+91$expectedNewline',
@@ -70,6 +73,7 @@ void main() {
           temp.deleteSync(recursive: true);
         }
       }
+      if (!tagAware) continue;
       for (final tag in [
         '1.0.3',
         'v1.0',
@@ -98,127 +102,41 @@ void main() {
     });
   }
 
-  test('tag publication waits for every platform and preserves RC status', () {
-    final publishers = [
-      (
-        path: '../../.github/workflows/linux-appimage-release.yml',
-        job: 'build-test-publish',
-        step: 'Upload AppImage and publish complete desktop release',
-        assets: [
-          'Pomodoist-x86_64.AppImage',
-          'Pomodoist-x86_64.AppImage.sha256',
-        ],
-        legacyGh: 'true',
-      ),
-      (
-        path: '../../.github/workflows/windows-exe-preview.yml',
-        job: 'publish',
-        step: 'Upload EXE and publish complete desktop release',
-        assets: ['Pomodoist-Setup.exe', 'Pomodoist-Setup.exe.sha256'],
-        legacyGh: 'false',
-      ),
-      (
-        path: '../../.github/workflows/android-release.yml',
-        job: 'signed-apk-and-bundle',
-        step: 'Publish Android artifacts to the GitHub release',
-        assets: ['Pomodoist-Android.apk', 'Pomodoist-Android.apk.sha256'],
-        legacyGh: 'false',
-      ),
-    ];
-    final scripts = <String>[];
-    for (final publisher in publishers) {
-      final job = _job(publisher.path, publisher.job);
-      final step = (job['steps'] as YamlList).cast<YamlMap>().singleWhere(
-        (step) => step['name'] == publisher.step,
-      );
-      expect(
-        (step['env'] as YamlMap?)?['GH_REPO'] ??
-            (job['env'] as YamlMap?)?['GH_REPO'],
-        r'${{ github.repository }}',
-        reason: publisher.path,
-      );
-      scripts.add(step['run'] as String);
-    }
+  test('desktop release publication matches the fork delivery policy', () {
+    final linuxPublish = ( _job(
+      '../../.github/workflows/linux-appimage-release.yml',
+      'build-test-publish',
+    )['steps'] as YamlList).cast<YamlMap>().singleWhere(
+      (step) => step['name'] == 'Upload AppImage and publish complete desktop release',
+    );
+    final linuxScript = linuxPublish['run'] as String;
+    expect(linuxPublish['if'], "github.ref_type == 'tag' && matrix.flavor == 'production'");
+    expect(linuxScript, contains('required_assets=('));
+    expect(linuxScript, contains('Pomodoist-x86_64.AppImage'));
+    expect(linuxScript, contains('Pomodoist-Setup.exe'));
+    expect(linuxScript, contains('--field draft=false'));
 
-    for (final tag in ['v1.0.3', 'v1.0.3-rc.1']) {
-      for (final order in [
-        [0, 1, 2],
-        [1, 2, 0],
-        [2, 0, 1],
-      ]) {
-        final temp = Directory.systemTemp.createTempSync('release-publish-');
-        try {
-          final prerelease = tag.contains('-rc.');
-          final environment = {
-            'GITHUB_REF_NAME': tag,
-            'GITHUB_REPOSITORY': 'example/pomodoist',
-            'GH_REPO': 'example/pomodoist',
-            'GITHUB_SHA': '0123456789abcdef0123456789abcdef01234567',
-          };
-          ProcessResult publish(int position) {
-            final publisher = publishers[order[position]];
-            return _bash('$_fakeGh\n${scripts[order[position]]}', temp, {
-              ...environment,
-              'LEGACY_GH': publisher.legacyGh,
-            });
-          }
+    final windows = _job('../../.github/workflows/windows-exe-preview.yml', 'publish');
+    final windowsPublish = (windows['steps'] as YamlList).cast<YamlMap>().singleWhere(
+      (step) => step['name'] == 'Publish manual GitHub pre-release',
+    );
+    final windowsScript = windowsPublish['run'] as String;
+    expect(windowsScript, contains('chinese-preview-'));
+    expect(windowsScript, contains('gh release create'));
+    expect(windowsScript, contains('--prerelease'));
+    expect(windowsScript, contains('Pomodoist-Setup.exe'));
+    expect(windowsScript, isNot(contains('required_assets=(')));
 
-          // Two platforms are never enough, and a repeated platform stays idempotent.
-          for (final position in [0, 1, 0]) {
-            final publisher = publishers[order[position]];
-            final result = publish(position);
-            expect(result.exitCode, 0, reason: '${result.stderr}');
-            expect(
-              result.stdout,
-              contains(
-                'Release remains draft until all release assets are present.',
-              ),
-              reason: publisher.path,
-            );
-            expect(
-              File('${temp.path}/gh.log').readAsStringSync(),
-              isNot(contains('--method PATCH')),
-              reason: publisher.path,
-            );
-            expect(
-              File('${temp.path}/assets').readAsLinesSync(),
-              containsAll(publisher.assets),
-              reason: publisher.path,
-            );
-          }
-
-          final last = publish(2);
-          expect(last.exitCode, 0, reason: '${last.stderr}');
-          final log = File('${temp.path}/gh.log').readAsLinesSync();
-          final publication = log.singleWhere(
-            (line) => line.startsWith('api --method PATCH'),
-          );
-          expect(publication, contains('--raw-field tag_name=$tag'));
-          expect(publication, contains('--field draft=false'));
-          expect(publication, contains('--field prerelease=$prerelease'));
-          expect(
-            publication,
-            contains('--raw-field make_latest=${!prerelease}'),
-          );
-          expect(
-            log.where(
-              (line) =>
-                  line.startsWith('release create ') ||
-                  line.startsWith(
-                    'api --method POST repos/example/pomodoist/releases ',
-                  ),
-            ),
-            hasLength(1),
-          );
-          expect(log.where((line) => line == 'generate-notes'), hasLength(1));
-          expect(File('${temp.path}/assets').readAsLinesSync().toSet(), {
-            for (final publisher in publishers) ...publisher.assets,
-          });
-        } finally {
-          temp.deleteSync(recursive: true);
-        }
-      }
-    }
+    final android = _job(
+      '../../.github/workflows/android-release.yml',
+      'signed-apk-and-bundle',
+    );
+    expect(
+      (android['steps'] as YamlList).cast<YamlMap>().where(
+        (step) => (step['run'] as String? ?? '').contains('gh release'),
+      ),
+      isEmpty,
+    );
   });
 
   test('Linux trusts the resolved SDK and checkout before running Flutter', () {
@@ -297,40 +215,24 @@ void main() {
     });
   }
 
-  test('one tag release waits for Linux, Windows and Android assets', () {
-    for (final path in [
+  test('desktop release workflows keep tag and Chinese preview delivery separate', () {
+    final linux = File(
       '../../.github/workflows/linux-appimage-release.yml',
+    ).readAsStringSync();
+    expect(linux, contains("- 'v*.*.*'"));
+    expect(linux, contains(r'group: desktop-release-${{ github.ref }}'));
+    expect(linux, contains('required_assets=('));
+    expect(linux, contains('Pomodoist-x86_64.AppImage'));
+    expect(linux, contains('Pomodoist-Setup.exe'));
+
+    final windows = File(
       '../../.github/workflows/windows-exe-preview.yml',
-    ]) {
-      final workflow = File(path).readAsStringSync();
-      expect(workflow, contains("- 'v*.*.*'"), reason: path);
-      expect(
-        workflow,
-        contains(r'group: desktop-release-${{ github.ref }}'),
-        reason: path,
-      );
-      expect(
-        workflow,
-        anyOf(contains('--draft'), contains('--field draft=true')),
-        reason: path,
-      );
-      expect(workflow, contains('required_assets=('), reason: path);
-      expect(workflow, contains('Pomodoist-x86_64.AppImage'), reason: path);
-      expect(
-        workflow,
-        contains('Pomodoist-x86_64.AppImage.sha256'),
-        reason: path,
-      );
-      expect(workflow, contains('Pomodoist-Setup.exe'), reason: path);
-      expect(workflow, contains('Pomodoist-Setup.exe.sha256'), reason: path);
-      expect(workflow, contains('Pomodoist-Android.apk'), reason: path);
-      expect(workflow, contains('Pomodoist-Android.apk.sha256'), reason: path);
-      expect(
-        workflow,
-        contains('Release remains draft until all release assets are present.'),
-        reason: path,
-      );
-    }
+    ).readAsStringSync();
+    expect(windows, contains('workflow_dispatch:'));
+    expect(windows, contains("- 'chinese'"));
+    expect(windows, isNot(contains("- 'v*.*.*'")));
+    expect(windows, contains('chinese-preview-'));
+    expect(windows, isNot(contains('Pomodoist-Android.apk')));
   });
 
   test('desktop release workflows do not depend on SignPath', () {
@@ -405,7 +307,7 @@ void main() {
 
     final build = jobs['build-test'] as YamlMap;
     expect(build['needs'], 'validate-ref');
-    expect(build['environment'], 'windows-production');
+    expect(build['environment'], 'windows-preview');
     expect((build['permissions'] as YamlMap)['contents'], 'read');
     expect(build.containsKey('env'), isFalse);
 
@@ -425,11 +327,11 @@ void main() {
 
     final publish = jobs['publish'] as YamlMap;
     expect(publish['needs'], 'build-test');
-    expect(publish['environment'], 'windows-production');
+    expect(publish['environment'], 'windows-preview');
     expect((publish['permissions'] as YamlMap)['contents'], 'write');
   });
 
-  test('Android release publishes signed artifacts and gates the tag', () {
+  test('Android release builds signed artifacts and gates the tag', () {
     final document =
         loadYaml(
               File(
@@ -445,46 +347,38 @@ void main() {
 
     final jobs = document['jobs'] as YamlMap;
     final job = jobs['signed-apk-and-bundle'] as YamlMap;
-    expect((job['permissions'] as YamlMap)['contents'], 'write');
+    expect((job['permissions'] as YamlMap)['contents'], 'read');
 
-    final publish = (job['steps'] as YamlList).cast<YamlMap>().singleWhere(
-      (step) =>
-          step['name'] == 'Publish Android artifacts to the GitHub release',
+    final steps = (job['steps'] as YamlList).cast<YamlMap>();
+    final gate = steps.singleWhere(
+      (step) => step['name'] == 'Require a reviewed main commit and valid version',
     );
-    expect(publish['if'], "github.ref_type == 'tag'");
-
-    final script = publish['run'] as String;
-    for (final asset in <String>[
-      'Pomodoist-Android.apk',
-      'Pomodoist-Android.apk.sha256',
-    ]) {
-      expect(script, contains(asset));
-    }
-    expect(script, isNot(contains('Pomodoist-Android.aab')));
-    expect(script, contains('gh release upload'));
-    expect(script, contains('--clobber'));
-    expect(script, contains('required_assets=('));
+    final gateScript = gate['run'] as String;
+    expect(gateScript, contains('git merge-base --is-ancestor'));
+    expect(gateScript, contains(r'^v[0-9]+\.[0-9]+\.[0-9]+'));
+    final build = steps.singleWhere(
+      (step) => step['name'] == 'Build and verify production APK and AAB',
+    );
+    expect(build['run'], contains('bash tool/android/build_release.sh'));
+    expect(build['run'], contains('ANDROID_SIGNING_CERT_SHA256'));
 
     final bundle = (job['steps'] as YamlList).cast<YamlMap>().singleWhere(
       (step) => step['name'] == 'Save signed release artifacts',
     );
     final artifact = bundle['with'] as YamlMap;
     expect(artifact['name'], r'pomodoist-android-${{ github.sha }}');
-    expect(artifact['path'], 'build/flutter/android/release/');
-    expect(artifact['retention-days'], 90);
+    expect(artifact['path'], 'apps/flutter/build/android/release/');
+    expect(artifact['retention-days'], 30);
   });
 
-  test('Windows production builds configure native CAPTCHA', () {
-    for (final path in ['../../.github/workflows/windows-exe-preview.yml']) {
-      final workflow = File(path).readAsStringSync();
-      expect(
-        workflow,
-        contains(
-          "POMODOIST_REGISTRATION_URL = 'https://app.pomodoist.com/auth/challenge'",
-        ),
-        reason: path,
-      );
-    }
+  test('Chinese Windows preview stays local and manual', () {
+    final workflow = File(
+      '../../.github/workflows/windows-exe-preview.yml',
+    ).readAsStringSync();
+    expect(workflow, contains("- 'chinese'"));
+    expect(workflow, contains('POMODOIST_ENVIRONMENT=local'));
+    expect(workflow, contains('No local subscription requirements or purchase offers'));
+    expect(workflow, isNot(contains('POMODOIST_REGISTRATION_URL')));
   });
 }
 

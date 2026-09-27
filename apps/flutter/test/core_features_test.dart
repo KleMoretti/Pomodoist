@@ -1160,14 +1160,7 @@ void main() {
           russian.returnMessageFor(DateTime(2026, 1, day, 20, 30)).title,
       ];
 
-      expect(titles, [
-        'Помо скучает',
-        'Помо на связи',
-        'Помо рядом',
-        'Вечер с Помо',
-        'Помо напоминает',
-        'Помо скучает',
-      ]);
+      expect(titles, List.filled(6, 'Помидор скучает'));
       expect(
         russian.returnMessageFor(DateTime(2026, 1, 1)).body,
         'Если есть силы, заверши одну небольшую задачу',

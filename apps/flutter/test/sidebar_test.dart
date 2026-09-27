@@ -1,4 +1,5 @@
 import 'package:pomodoist/domain/models/account/account_overview.dart';
+import 'package:pomodoist/domain/models/personal_edition.dart';
 import 'package:pomodoist/domain/models/settings/app_language.dart';
 import 'package:pomodoist/ui/core/localization/app_locale.dart';
 import 'package:shadcn_ui/shadcn_ui.dart'
@@ -66,6 +67,8 @@ void main() {
     SharedPreferences.setMockInitialValues({
       onboardingCompletedPreferenceKey: true,
       launchOfferStartedAtPreferenceKey: '2026-01-01T10:00:00.000Z',
+      appLanguagePreferenceKey: AppLanguage.en.storageValue,
+      appLanguageChineseMigrationKey: true,
     });
   });
 
@@ -300,6 +303,8 @@ void main() {
     SharedPreferences.setMockInitialValues({
       onboardingCompletedPreferenceKey: true,
       launchOfferStartedAtPreferenceKey: '2026-01-01T10:00:00.000Z',
+      appLanguagePreferenceKey: AppLanguage.en.storageValue,
+      appLanguageChineseMigrationKey: true,
       keyboardShortcutsPreferenceKey: jsonEncode({
         AppShortcutCommand.toggleSidebar.storageKey: {
           'physicalKeyId': PhysicalKeyboardKey.keyJ.usbHidUsage,
@@ -529,6 +534,8 @@ void main() {
     SharedPreferences.setMockInitialValues({
       onboardingCompletedPreferenceKey: true,
       launchOfferStartedAtPreferenceKey: '2026-01-01T10:00:00.000Z',
+      appLanguagePreferenceKey: AppLanguage.en.storageValue,
+      appLanguageChineseMigrationKey: true,
     });
     final now = DateTime.utc(2026, 4, 27, 10);
     await _pumpCompactApp(
@@ -833,6 +840,8 @@ void main() {
     SharedPreferences.setMockInitialValues({
       onboardingCompletedPreferenceKey: true,
       launchOfferStartedAtPreferenceKey: '2026-01-01T10:00:00.000Z',
+      appLanguagePreferenceKey: AppLanguage.en.storageValue,
+      appLanguageChineseMigrationKey: true,
     });
     await _pumpWideApp(tester, hasAccountPro: true);
 
@@ -845,9 +854,9 @@ void main() {
     await _disposeApp(tester);
   });
 
-  testWidgets('sidebar quick add microphone opens paywall without Pro', (
-    tester,
-  ) async {
+  testWidgets(
+    'sidebar quick add microphone opens paywall without Pro',
+    (tester) async {
     await _pumpWideApp(tester);
 
     await tester.tap(find.byKey(const Key('sidebar-add-task')));
@@ -864,7 +873,9 @@ void main() {
 
     expect(find.byKey(const Key('billing-paywall')), findsNothing);
     await _disposeApp(tester);
-  });
+    },
+    skip: personalEdition,
+  );
 
   testWidgets('sidebar navigation opens new and project routes', (
     tester,

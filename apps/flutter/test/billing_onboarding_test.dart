@@ -26,6 +26,7 @@ import 'package:pomodoist/config/billing_dependencies.dart';
 import 'package:pomodoist/config/billing_store_dependencies.dart';
 import 'package:pomodoist/data/services/billing/billing_store.dart';
 import 'package:pomodoist/domain/models/billing/billing_models.dart';
+import 'package:pomodoist/domain/models/personal_edition.dart';
 import 'package:pomodoist/ui/billing/view_models/billing_view_model.dart';
 import 'package:pomodoist/ui/billing/widgets/billing_paywall.dart';
 import 'package:pomodoist/ui/billing/widgets/purchase_success_screen.dart';
@@ -35,6 +36,14 @@ import 'package:pomodoist/ui/core/localization/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  if (personalEdition) {
+    test(
+      'hosted billing onboarding is excluded from the personal edition',
+      () {},
+      skip: 'The personal edition has no hosted billing or purchase flow.',
+    );
+    return;
+  }
   setUpAll(loadTestAppResources);
   TestWidgetsFlutterBinding.ensureInitialized();
 

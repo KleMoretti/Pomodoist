@@ -2,8 +2,17 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pomodoist/domain/models/personal_edition.dart';
 
 void main() {
+  if (personalEdition) {
+    test(
+      'TestFlight release checks are deferred for the personal edition',
+      () {},
+      skip: 'The personal edition ships local builds without TestFlight.',
+    );
+    return;
+  }
   test(
     'TestFlight preflight accepts only a production client config',
     () async {
