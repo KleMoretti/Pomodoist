@@ -8,7 +8,8 @@ import 'package:pomodoist/data/services/local/outbox_service.dart';
 import 'package:pomodoist/data/repositories/tasks/task_repository_impl.dart';
 import 'package:pomodoist/domain/models/tasks/task_models.dart';
 import 'package:pomodoist/domain/models/focus/focus_models.dart'
-    show FocusPresetItem;
+    show FocusPresetItem, defaultPresetId;
+import 'package:pomodoist/domain/models/settings/app_language.dart';
 import 'package:pomodoist/ui/focus/widgets/focus_preset_labels.dart';
 import 'package:pomodoist/ui/core/localization/app_localizations_zh.dart';
 

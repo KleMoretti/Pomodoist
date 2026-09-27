@@ -276,6 +276,7 @@ void main() {
       final now = DateTime.utc(2026, 9, 3, 10);
       final later = now.add(const Duration(minutes: 1));
       final task = TaskRow(
+        assigneeIdsJson: '[]',
         id: 'task-1',
         userId: localUserId,
         content: 'Calendar task',
@@ -411,6 +412,9 @@ class _PullOnlyAccountClient implements AccountClient {
   _PullOnlyAccountClient(this.result);
 
   final AccountSyncPullResult result;
+
+  @override
+  String? get currentUserId => 'remote-user';
 
   @override
   Future<AccountSyncPullResult> pullChanges({

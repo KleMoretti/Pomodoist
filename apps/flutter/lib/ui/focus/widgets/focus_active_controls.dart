@@ -371,7 +371,7 @@ Widget _buildFocusMoreActionsMenu(
                       onCustomizePreset: onCustomizePreset,
                       onCreatePreset: onCreatePreset,
                     ),
-              child: Text(l10n.usePreset(focusPresetLabel(l10n, preset))),
+              child: Text(l10n.usePreset(preset.displayName(l10n))),
             ),
           if (minimal && actions != null && !ready)
             ShadContextMenuItem(

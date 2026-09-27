@@ -29,7 +29,7 @@ final class AccountTaskDecompositionTransport {
     final storeTransactions = account.currentUserId != null ||
             _billingStore == null
         ? const <String>[]
-        : await _billingStore!.pomodoistTransactionJws();
+        : await _billingStore.pomodoistTransactionJws();
     try {
       final response = await account.invokeFunction(
         _endpoint,

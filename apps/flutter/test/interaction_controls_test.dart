@@ -4490,6 +4490,16 @@ class _FakeTaskRepository implements TaskRepository {
   Stream<TaskItem?> watchTask(String id) => Stream.value(_tasks[id]);
 
   @override
+  Stream<TaskItem?> watchRecurrenceTask(String id) => Stream.value(_tasks[id]);
+
+  @override
+  Future<void> updateTaskRecurrence(
+    String id, {
+    required TaskRecurrence? recurrence,
+    DateTime? startDate,
+  }) async {}
+
+  @override
   Future<Result<String>> createTask(CreateTaskInput input) =>
       Result.capture<String>(() async {
         createdInputs.add(input);

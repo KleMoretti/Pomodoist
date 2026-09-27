@@ -15,7 +15,6 @@ import 'package:pomodoist/domain/models/tasks/task_models.dart';
 import 'package:pomodoist/domain/models/focus/focus_models.dart';
 import 'focus_preset_labels.dart';
 import 'package:pomodoist/ui/focus/view_models/focus_start_dialog_dependencies.dart';
-import 'package:pomodoist/domain/models/focus/focus_view_mode.dart';
 
 bool _focusSetupOpen = false;
 
