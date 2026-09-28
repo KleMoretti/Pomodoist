@@ -134,6 +134,7 @@ jobs:
         run: >-
           flutter build windows --release
           --dart-define=POMODOIST_ENVIRONMENT=local
+          --dart-define=POMODOIST_BILLING_CHANNEL=storekit
           --dart-define=POMODOIST_RELEASE=${{ github.sha }}
         working-directory: apps/flutter
       - name: Compile installer and checksum with pinned compiler
