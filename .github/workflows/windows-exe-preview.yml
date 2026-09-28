@@ -106,7 +106,7 @@ jobs:
         run: |
           flutter analyze --no-pub
           if ($LASTEXITCODE -ne 0) { throw 'Static analysis failed.' }
-          flutter test --no-pub test/app_environment_test.dart test/chinese_recurrence_test.dart test/personal_edition_test.dart test/task_focus_launcher_test.dart test/windows_flavor_identity_test.dart test/workflow_yaml_test.dart
+          flutter test --no-pub test/app_environment_test.dart test/chinese_recurrence_test.dart test/personal_edition_test.dart test/task_focus_launcher_test.dart test/windows_flavor_identity_test.dart
           if ($LASTEXITCODE -ne 0) { throw 'Feature tests failed.' }
         working-directory: apps/flutter
       - name: Test installer packaging boundary

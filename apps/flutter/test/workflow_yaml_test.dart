@@ -308,7 +308,7 @@ void main() {
     expect((validateRef['permissions'] as YamlMap)['contents'], 'read');
     final validateScript =
         ((validateRef['steps'] as YamlList).single as YamlMap)['run'] as String;
-    expect(validateScript, contains(r'$GITHUB_REF == refs/heads/main'));
+    expect(validateScript, contains(r'"$GITHUB_REF" == refs/heads/main'));
     expect(validateScript, isNot(contains(r'$GITHUB_REF != refs/heads/chinese')));
 
     final build = jobs['build-test'] as YamlMap;
