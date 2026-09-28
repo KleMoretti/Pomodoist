@@ -132,7 +132,7 @@ jobs:
           }
       - name: Build local-mode feature preview
         run: >-
-          flutter build windows --release
+          flutter build windows --release --flavor production
           --dart-define=POMODOIST_ENVIRONMENT=local
           --dart-define=POMODOIST_BILLING_CHANNEL=storekit
           --dart-define=POMODOIST_RELEASE=${{ github.sha }}
@@ -142,7 +142,7 @@ jobs:
           $compiler = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
           powershell.exe -NoProfile -ExecutionPolicy Bypass `
             -File .\tool\windows\installer\build.ps1 `
-            -BuildDirectory apps\flutter\build\windows\x64\runner\Release `
+            -BuildDirectory build\flutter\windows\x64\production\runner\Release `
             -CompilerPath $compiler
       - name: Compile a non-production flavor with pinned compiler
         run: |
