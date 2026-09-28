@@ -112,7 +112,10 @@ Deno.test("Telegram focus is one work interval and emits shared focus events", (
   );
 
   assertEquals(operations.map((operation) => operation.entityType), [
-    "focus_run", "focus_interval", "focus_event", "focus_event",
+    "focus_run",
+    "focus_interval",
+    "focus_event",
+    "focus_event",
   ]);
   assertEquals(operations[0].payload.targetWorkIntervals, 1);
   assertEquals(operations[1].payload.plannedSeconds, 1500);
@@ -601,7 +604,7 @@ Deno.test("transcript skips missing keys and Smart uses DeepSeek V4.1 Flash", as
   }
 });
 
-Deno.test("transcript fallback and JSON retry share the 40 second budget", async () => {
+Deno.test("transcript fallback leaves ten seconds for quota settlement", async () => {
   const originalNow = performance.now;
   const originalTimeout = AbortSignal.timeout;
   let elapsed = 0;
@@ -625,14 +628,14 @@ Deno.test("transcript fallback and JSON retry share the 40 second budget", async
         env: { get: () => "test-key" },
         fetch: (async () => {
           calls += 1;
-          elapsed = [8000, 20000, 39500, 40000][calls - 1];
+          elapsed = [8000, 20000, 29500, 30000][calls - 1];
           if (calls === 3) return Response.json({ choices: [] });
           throw new DOMException("timed out", "TimeoutError");
         }) as typeof fetch,
       }),
     );
     assertEquals(response.status, 504);
-    assertEquals(timeouts, [8000, 12000, 20000, 500]);
+    assertEquals(timeouts, [8000, 12000, 10000, 500]);
     assertEquals(calls, 4);
   } finally {
     performance.now = originalNow;
@@ -1121,6 +1124,7 @@ function deps(args: {
       return () => `uuid-${++counter}`;
     })(),
     fetch: args.fetch ?? fetch,
+    quota: async () => ({ allowed: true }),
     env: args.env ?? { get: () => "" },
     verifyStoreTransaction: args.verifyStoreTransaction,
     createClient: () => ({
@@ -1133,7 +1137,7 @@ function deps(args: {
       },
       rpc: async (functionName: string, rpcArgs: Record<string, unknown>) => {
         rpcCalls.push({ functionName, args: rpcArgs });
-        if (functionName === "pull_changes") {
+        if (functionName === "read_pomodoist_companion_state") {
           return {
             data: {
               nextCursor: 1,
@@ -1272,3 +1276,25 @@ function focusInterval(
     },
   };
 }
+
+Deno.test("draft batch uses distinct receipts and one shared label", async () => {
+  const rpcCalls: Array<
+    { functionName: string; args: Record<string, unknown> }
+  > = [];
+  const response = await handlePomodoistWatch(
+    request({
+      command: {
+        type: "task.commitDrafts",
+        id: "11111111-1111-4111-8111-111111111111",
+        tasks: [{ quickAdd: "First @shared @SHARED" }, { quickAdd: "Second @shared" }],
+      },
+    }),
+    deps({ rpcCalls }),
+  );
+  assertEquals(response.status, 200);
+  const push = rpcCalls.find((call) => call.args.p_operations != null)!;
+  const ops = push.args.p_operations as Array<Record<string, unknown>>;
+  assertEquals(new Set(ops.map((op) => op.opId)).size, ops.length);
+  assertEquals(ops.filter((op) => op.entityType === "task").length, 2);
+  assertEquals(ops.filter((op) => op.entityType === "label").length, 1);
+});

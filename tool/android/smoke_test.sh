@@ -1,8 +1,30 @@
 #!/usr/bin/env bash
 # SDK-level smoke test only: does not claim authenticated feature/device QA.
 set -euo pipefail
-package=com.finchforge.pomodoist
-adb install -r build/app/outputs/flutter-apk/app-release.apk
+repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+if [[ $# -gt 1 ]]; then
+  echo 'Usage: bash tool/android/smoke_test.sh [development|staging|production]' >&2
+  exit 64
+fi
+# The installed package, the APK path and the deep-link scheme all follow from
+# the flavor, so a build can never be smoke-tested as a different flavor.
+flavor=${1:-production}
+case "$flavor" in
+  development) package=com.finchforge.pomodoist.dev; scheme=pomodoist-dev ;;
+  staging) package=com.finchforge.pomodoist.stg; scheme=pomodoist-stg ;;
+  production) package=com.finchforge.pomodoist; scheme=pomodoist ;;
+  *)
+    echo "Unknown Android flavor: $flavor" >&2
+    exit 64
+    ;;
+esac
+# The activity class stays in the shared namespace while the application ID
+# changes per flavor. Use its fully qualified name for `am start`; the
+# shorthand "$package/.MainActivity" would incorrectly look under the flavor
+# package (for example, com.finchforge.pomodoist.dev.MainActivity).
+activity=com.finchforge.pomodoist.MainActivity
+cd "$repo_root/apps/flutter"
+adb install -r "build/app/outputs/flutter-apk/app-$flavor-release.apk"
 adb logcat -c
 start_activity() {
   local result
@@ -12,17 +34,17 @@ start_activity() {
   sleep 3
   adb shell pidof "$package" >/dev/null
 }
-start_activity -n "$package/.MainActivity"
+start_activity -n "$package/$activity"
 adb shell input keyevent KEYCODE_HOME
-start_activity -n "$package/.MainActivity"
+start_activity -n "$package/$activity"
 for host in focus login-callback google-calendar-connected captcha-callback; do
-  start_activity -a android.intent.action.VIEW -d "pomodoist://$host" -p "$package"
+  start_activity -a android.intent.action.VIEW -d "$scheme://$host" -p "$package"
 done
 # Exercise a cold-start deep link, not only delivery to an existing Activity.
 adb shell am force-stop "$package"
-start_activity -a android.intent.action.VIEW -d 'pomodoist://focus' -p "$package"
+start_activity -a android.intent.action.VIEW -d "$scheme://focus" -p "$package"
 if adb logcat -d -b crash | grep -Fq "Process: $package"; then
   echo 'The Android process crashed during smoke testing.' >&2
   exit 1
 fi
-echo 'Android install/launch/resume/deep-link smoke checks passed.'
+echo "Android install/launch/resume/deep-link smoke checks passed for the $flavor flavor."

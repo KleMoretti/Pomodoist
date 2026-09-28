@@ -19,13 +19,28 @@ jobs:
           sudo apt-get install --yes --no-install-recommends \
             appstream desktop-file-utils
       - run: sh tool/test_public_boundary.sh
+      - run: sh tool/test_xcode_warnings.sh
+      - run: python3 tool/check_architecture.py
+      - run: python3 tool/deploy/web/check_build_contract.py
+      - run: python3 -m unittest discover -s tool -p test_architecture.py
+      - run: python3 -m unittest discover -s tool -p test_web_build_contract.py
       - run: make test-linux-packaging
+      - name: Link Flutter build output into build/
+        run: make flutter-build-link
       - run: flutter pub get --enforce-lockfile
+        working-directory: apps/flutter
+      - name: Check resolved Dart symbol boundaries
+        run: dart run tool/check_architecture_types.dart
+        working-directory: apps/flutter
       - run: python3 -m unittest discover -s tool -p test_release_notes.py
       - run: flutter analyze
+        working-directory: apps/flutter
+      - run: dart analyze tool
       - run: flutter test
+        working-directory: apps/flutter
       - name: Test browser voice recording storage
         shell: bash
+        working-directory: apps/flutter
         run: |
           # Root-only CI runners cannot launch Chrome's sandbox. Keep normal
           # developer/non-root launches unchanged and scope this to this test.
@@ -37,4 +52,5 @@ jobs:
           fi
           flutter test --platform chrome test/web/voice_recording_store_test.dart
       - name: Compile web platform adapters
-        run: flutter build web --debug
+        working-directory: apps/flutter
+        run: flutter build web --debug --target lib/main_development.dart

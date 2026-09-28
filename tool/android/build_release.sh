@@ -2,6 +2,7 @@
 # Produces APK + AAB with identical versioning, public configuration and signing.
 set -euo pipefail
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+app_root="$repo_root/apps/flutter"
 cd "$repo_root"
 config=${1:-.env.android.json}
 if [[ $# -gt 1 ]]; then
@@ -14,6 +15,12 @@ if [[ ! "$release" =~ ^[0-9a-f]{40}$ ]]; then
   echo 'POMODOIST_RELEASE must be a full Git commit SHA.' >&2
   exit 64
 fi
+config=$(python3 -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "$config")
+# The Flutter project links build/ and .dart_tool to the repository-root build
+# directory, and those links are not tracked because the target is ignored, so
+# a fresh checkout has to create them before Flutter writes anything.
+bash "$repo_root/tool/link-build.sh"
+cd "$app_root"
 pubspec_version=$(awk '/^version:/ {sub(/\r$/, ""); print $2; exit}' pubspec.yaml)
 version=${ANDROID_BUILD_NAME:-${pubspec_version%+*}}
 build_number=${ANDROID_BUILD_NUMBER:-${pubspec_version##*+}}
@@ -26,16 +33,18 @@ if [[ ! "$build_number" =~ ^[1-9][0-9]{0,9}$ ]] || (( build_number > 2100000000 
   exit 64
 fi
 flutter pub get --enforce-lockfile
-common=(--release --obfuscate "--build-name=$version" "--build-number=$build_number"
+# Only the production flavor is published: it is the one Play and direct
+# downloads install, and the one whose applicationId matches the release notes.
+common=(--release --obfuscate --flavor production "--target=lib/main.dart" "--build-name=$version" "--build-number=$build_number"
   "--dart-define-from-file=$config" "--dart-define=POMODOIST_RELEASE=$release"
   --dart-define=POMODOIST_BILLING_CHANNEL=storekit)
 flutter build apk "${common[@]}" --split-debug-info=build/android/symbols/apk
 flutter build appbundle "${common[@]}" --split-debug-info=build/android/symbols/appbundle
-bash tool/android/verify_artifacts.sh
+bash "$repo_root/tool/android/verify_artifacts.sh" production
 output=build/android/release
 mkdir -p "$output"
-cp build/app/outputs/flutter-apk/app-release.apk "$output/Pomodoist-Android.apk"
-cp build/app/outputs/bundle/release/app-release.aab "$output/Pomodoist-Android.aab"
+cp build/app/outputs/flutter-apk/app-production-release.apk "$output/Pomodoist-Android.apk"
+cp build/app/outputs/bundle/productionRelease/app-production-release.aab "$output/Pomodoist-Android.aab"
 (
   cd "$output"
   sha256sum Pomodoist-Android.apk Pomodoist-Android.aab > SHA256SUMS
@@ -50,4 +59,4 @@ Path(sys.argv[1]).write_text(json.dumps({
     'versionCode': int(sys.argv[3]), 'commit': sys.argv[4],
 }, indent=2) + '\n')
 PY
-printf 'Signed Android artifacts: %s/%s\n' "$repo_root" "$output"
+printf 'Signed Android artifacts: %s/%s\n' "$app_root" "$output"

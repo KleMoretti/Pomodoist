@@ -33,14 +33,16 @@ rewrite stored names just because the interface language changed.
 
 | Purpose | Source |
 |---|---|
-| Palette, typography, Material and Shadcn themes | [app_theme.dart](../lib/app/theme/app_theme.dart) |
-| Built-in themes, local copies, selection and live preview | [app_theme_settings.dart](../lib/app/theme/app_theme_settings.dart) |
-| Shared durations, curve, and Reduce Motion | [app_motion.dart](../lib/app/theme/app_motion.dart) |
-| Main application integration | [app.dart](../lib/app/app.dart) |
-| Separate Quick Add window integration | [global_quick_add_window.dart](../lib/app/global_quick_add_window.dart) |
-| Task row events and effects | [task_motion.dart](../lib/features/tasks/presentation/widgets/task_motion.dart) |
-| Voice panel motion | [voice_panel_motion.dart](../lib/features/tasks/presentation/widgets/voice_panel_motion.dart) |
-| Focus completion | [focus_completion_celebration.dart](../lib/features/focus/presentation/focus_completion_celebration.dart) |
+| Palette, typography, Material and Shadcn themes | [app_theme.dart](../apps/flutter/lib/ui/core/themes/app_theme.dart) |
+| Built-in themes, local copies, selection and live preview | [theme_settings_view_model.dart](../apps/flutter/lib/ui/settings/view_models/theme_settings_view_model.dart) |
+| Shared durations, curve, and Reduce Motion | [app_motion.dart](../apps/flutter/lib/ui/core/themes/app_motion.dart) |
+| Main application integration | [app.dart](../apps/flutter/lib/ui/core/widgets/pomodoist_app.dart) |
+| Separate Quick Add window integration | [global_quick_add_window.dart](../apps/flutter/lib/ui/quick_add/widgets/global_quick_add_window.dart) |
+| Task row events and effects | [task_motion.dart](../apps/flutter/lib/ui/tasks/widgets/task_motion.dart) |
+| Voice panel motion | [voice_panel_motion.dart](../apps/flutter/lib/ui/tasks/widgets/voice_panel_motion.dart) |
+| Focus completion | [focus_completion_celebration.dart](../apps/flutter/lib/ui/focus/widgets/focus_completion_celebration.dart) |
+| Bottom navigation and shared menus | [app_bottom_navigation.dart](../apps/flutter/lib/ui/core/widgets/app_bottom_navigation.dart), [app_action_menu.dart](../apps/flutter/lib/ui/core/widgets/app_action_menu.dart) |
+| Focus controls and stages | [focus_active_controls.dart](../apps/flutter/lib/ui/focus/widgets/focus_active_controls.dart), [focus_stage.dart](../apps/flutter/lib/ui/focus/widgets/focus_stage.dart) |
 
 `AppThemePalette` is the single source of colors. In widgets, use
 `context.appColors`, `Theme.of(context).textTheme`, and `AppTheme.monoTextStyle`.
@@ -100,9 +102,11 @@ The five built-in themes are immutable. Custom is the only editable slot, starts
 from Classic, and keeps its fixed name and identifier. Editing resumes its saved
 colors; there is no base selector, duplication, renaming or deletion. Reset to
 Classic changes both draft palettes; Save commits the reset and Cancel discards
-it. `AppThemeSettingsController` persists the selected identifier and single
-custom pair together in SharedPreferences. The shared desktop provider scope
-keeps Quick Add and the main window aligned.
+it. `LocalThemeSettingsRepository` persists the selected identifier and single
+custom pair together in SharedPreferences as plain JSON; the color conversion
+stays with `AppThemeSettingsController`. That controller is the one explicit
+preview owner: its draft is shared through the desktop provider scope so Quick
+Add and the main window stay aligned, while ordinary screen drafts stay local.
 
 Local settings use format version 2. The active custom pair from version 1 becomes
 Custom; otherwise Custom starts from Classic and the selected built-in theme is
@@ -208,6 +212,102 @@ drafts. Close and Escape restore focus; nested menus handle Escape first.
 Keep the close/back and overflow actions pinned at the top of task details,
 inside the safe area, with task content scrolling below them.
 
+### Calendar planning view
+
+Calendar is a separate planning destination before Timeline in Views. Its Day,
+Week, Month and Routine modes share the same task schedules, project filter and
+selected date. Use a vertical time grid, subtle project-color fills, compact
+cards and the existing task-detail panel. Month cells retain every scheduled
+task; changing only the date retains timed duration and recurrence. All-day and
+unscheduled drop areas are explicit conversions. Desktop cards drag immediately;
+touch cards drag after a long press. Read-only tasks remain visible without edit
+or drag affordances. Overlapping timed tasks receive separate lanes; intervals
+spanning midnight appear on each intersecting day.
+
+Day overview opens from one labeled button in every mode. With at least 1060 px
+of content width it uses a 300 px side column; narrower layouts use a dismissible
+modal with keyboard focus containment and safe-area clearance. The panel contains
+a locale-aware mini calendar and the existing live Focus session and linked task.
+It must never start a separate timer or silently replace an active session.
+
+Routine is an alternative calendar layout grouped by task start time, with
+localized default Morning, Afternoon and Evening periods. Users may name, add,
+remove and adjust periods; invalid or overlapping ranges cannot be saved. Tasks
+outside the configured periods remain visible. The routine and selected mode are
+local preferences; failed saves retain the editor draft. Reuse shared colors,
+fonts, localized time/date formatting and existing Focus/task actions.
+
+### Mobile navigation, menus, and Focus controls
+
+The narrow shell supports at most five bottom-navigation destinations. Respect
+the system safe area, keep each destination's icon and selected state stable, and
+use the shared palette rather than a screen-specific bar color. Labels may be
+hidden only through the saved navigation-style preference; icons still require
+localized semantic labels and visible keyboard focus. Keep the bar above the
+keyboard and floating Quick Add/focus surfaces. Each destination and action
+keeps a 48 px minimum touch target, and Reduce Motion completes selection and
+reordering immediately.
+
+Use `AppActionMenu` for shared task/project actions and the existing context-menu
+region for pointer-positioned menus. Open menus only after explicit activation,
+place them within the viewport near edges, and preserve the same action order,
+keyboard navigation, Escape behavior and semantics on desktop and touch. Menu
+rows keep a 44 px minimum height, disabled/destructive states are communicated
+by more than color, and no menu opens merely because a pointer hovers an
+ellipsis.
+
+The active Focus dock uses the same timer state and preset labels as the Focus
+screen. Keep pause/complete/stop and plan actions available from the dock,
+provide a compact responsive timer at narrow widths, and expose the current
+stage, remaining time and action labels to accessibility services. Focus controls
+must retain the active session while the shell resizes or navigation changes;
+Reduce Motion removes decorative movement without delaying state changes.
+
+### Compact task creation
+
+In the inline Quick Add bar, center the microphone and Add buttons vertically
+within the row, including when task metadata increases its height.
+
+Below the 820 px shell breakpoint, show a 52 px circular Add task button with a
+24 px plus icon, `accentFill` background, `onAccent` foreground and subtle shadow.
+Use the standard floating end position, 16 px from the safe right and bottom
+edges, above bottom navigation, the mini Focus player and the software keyboard.
+Keep it available on all shell routes, including Focus, Settings and task details.
+It opens the existing Quick Add dialog; modal surfaces retain their normal input
+barriers. Give the button the localized Add task label and a visible focus state.
+
+Hide it for the entire voice Quick Add session in the same root overlay, including
+recording, transcription, draft review and the collapsed panel. Restore it when
+the session finishes or closes. Track session lifetime centrally for every voice
+entry point; do not derive visibility from recording status or panel expansion.
+Wide layouts keep their existing task creation controls.
+
+The Quick Add overlay below 820 px is a full-width bottom sheet with 12 px top
+corners, positioned above software keyboard insets and inside system safe areas.
+Use a compact heading with an explicit Close action, a large multiline field,
+and wrapping date, project and priority controls with 48 px touch targets. Show
+the short `P1`–`P4` priority label while retaining its localized accessible name.
+Only the text field requests autofocus on opening, so typing can start with the
+software keyboard immediately; surrounding focus wrappers must not claim it.
+Keep the microphone and expanded Add button in a pinned 48 px action row; scroll
+the heading, field and metadata when height is limited. Honor the selected theme's
+Quick Add background and accent, keeping the input solid with a visible focus
+indicator. Preserve the draft and input focus when resizing between the sheet
+and desktop dialog, and keep the existing voice-session lifecycle.
+
+Desktop Quick Add uses a compact command panel in both the wide-layout dialog
+and the separate native window. Place a large multiline input between the
+list-plus icon and microphone, above a thin divider. Keep date, project and
+short priority menus together with Add in the bottom row; wrap the action below
+the menus when space is limited. Use 40 px desktop controls and the current
+theme, without a duplicate heading or an Escape hint. Enter submits and Escape
+closes as before; retain a localized accessible name for the panel. Keep the
+input scrollable and size its region to its content, with 12 px vertical padding;
+extra window height must not create a gap between the text and the footer. Keep
+the footer outside the input scroll area, resizing available, and voice-window
+expansion intact. Start the dialog at 680 × 180 px and the native window at
+680 × 200 px. The native title bar supplies window controls.
+
 ### Sidebar
 
 Group daily destinations separately from planning views, followed by the existing
@@ -223,6 +323,28 @@ Project rows share their context menu between the sidebar and Projects screen.
 Secondary click and touch long press expose renaming, icon and color selection,
 favorites, and confirmed deletion. Project icons are synchronized project data;
 existing projects retain the hash icon until changed.
+
+Projects support arbitrary nesting with globally unique names. The shared menu
+offers Create subproject, Move project, and Move up/down among siblings. Keep
+the menu button visible for keyboard and touch access. A project and its task
+count include only its own tasks. Deleting a parent promotes its immediate
+children into its position; only the deleted project's tasks move to Inbox.
+
+The sidebar and Projects screen share tree controls. Branches start expanded,
+retain collapse state while the screen is mounted, and reveal the destination
+ancestors after creation or movement. Limit indentation to four visual steps
+without limiting hierarchy depth. Use 12 px per nesting step, without reserving
+an empty leading slot for expansion. Place branch toggles at the trailing edge.
+Keep Projects and Browse rows at a compact 44 px baseline, with 8 px horizontal
+padding and icon-to-title gaps; the sidebar uses 6 px vertical padding. Preserve
+text scaling, keyboard focus, and accessible action labels.
+Mouse dragging the middle half of a row
+nests a branch; the top and bottom quarters insert before and after the row.
+Show a parent highlight or insertion line, scroll at viewport edges, and show
+a Top level target during dragging. Disable dragging during search and archive
+viewing. Touch retains long-press menus; keyboard users can move through the
+same menus. Keep feedback immediate, without introducing motion or dependencies.
+Missing parents and cycles from synchronization must never hide projects.
 
 ### Today
 
@@ -283,7 +405,13 @@ clearing a token reveals the existing context defaults. Preview and creation use
 duration and clock. Preserve IME composition, selection and unrelated tokens.
 Quoted metadata names remain literal during date normalization. Ready voice
 subtasks preview the project inherited from their parent's current phrase.
-Details stay below the editable input; the separate window scrolls when needed.
+The desktop input renders the phrase at a regular weight and a muted, translucent
+text color, so a draft reads as writing rather than as a heading; recognized
+tokens keep their accent through color alone. On mobile and desktop, the composer
+hint uses light weight (300) and secondary text at 65% opacity to stay unobtrusive.
+`QuickAddComposer` owns this styling, so the dialog and the separate window
+stay consistent. Details stay below the editable input; the separate window
+scrolls when needed.
 Voice draft titles start at one line and grow with their text up to three lines;
 do not reserve blank lines for short tasks. Keep metadata and comments editable.
 
@@ -440,6 +568,21 @@ Arrow keys, Enter and Escape work without disrupting IME composition; restore
 focus on closing. Keep result selection tied to stable identifiers and revalidate
 a result before acting after data changes.
 
+### Labels
+
+Open a user label from Projects / Labels into the shared task list, filtered by
+label ID across projects. Text and voice Quick Add on that screen inherit the
+label while preserving explicitly selected projects and other labels. Missing
+or deleted labels show a return to Labels instead of a task composer.
+
+Label icons use a separate Lucide set: tag (default), bookmark, flag, bolt,
+lightbulb, clock, bell, pin, phone, mail, link, and wrench. Keep this set distinct
+from project icons. Offer selection during label creation, from the label row's
+context menu and visible edit button, and from its screen heading. Use localized
+icon names, keyboard focus, and selected-state semantics. Persist and synchronize
+icon identifiers; missing or unknown identifiers render as tag. Kanban status
+labels are excluded from these screens and edits.
+
 ### Settings
 
 Keep settings centered within 1200 px so all six theme previews fit at full width.
@@ -448,7 +591,7 @@ use a 216 px section menu and a content pane. Narrower layouts show the section
 index or the selected section with Back. Resize the existing tree: retain the
 selected section, each visited section's scroll position, and unfinished input.
 The `section` query parameter on `/settings` identifies General, Appearance,
-Tasks and Focus (`tasks-focus`), Integrations and data, Account and Pro, or About.
+Tasks and Focus (`tasks-focus`), Integrations and data, Account, or About.
 Without a valid parameter, the initial wide view opens General and the narrow
 view opens the index. Profile and Browse account links open `section=account`.
 Keep the existing shortcuts and Google Calendar routes and their return paths.
@@ -468,15 +611,46 @@ windows and a full-screen surface below 600 px. Preserve independent tab scroll
 positions and invalid input while switching tabs. Keep Classic editor chrome,
 live previews, validation, reset, save failures and cancel restoration.
 
-Show a compact, localized account profile and subscription status. Offer the
-existing LaunchOfferPaywall through a button, retaining purchase, restoration
-and management actions and the account-section return location. Loading and
-failed subscription lookups are unknown rather than confirmed Free; keep
-confirmed entitlement data visible during refreshes. Put sign-out and account
-deletion in a separate bottom group. Keep platform and authentication gates,
-import previews, integration warnings, revoke confirmations and shortcut conflict
-handling. Persistence errors show existing feedback without resetting session
-values. Standalone login, registration and onboarding layouts are unchanged.
+Show a compact, localized account profile when the account service is configured.
+The Chinese personal edition does not render subscription status, purchase,
+restore, offer or management controls; local feature access is supplied by the
+personal-edition repository and is not presented as a hosted entitlement. Hosted
+variants may add their own billing surface only with an explicit product and
+backend contract. Put sign-out and account deletion in a separate bottom group.
+Keep platform and authentication gates, import previews, integration warnings,
+revoke confirmations and shortcut conflict handling. Persistence errors show
+existing feedback without resetting session values. Standalone login and
+registration retain their own layouts.
+
+### First-run onboarding
+
+Use the compact slide-card direction from variant 02 in
+`variants/onboarding/index.html`: a brand row, a decorative illustration above
+the current setting, and a pinned footer with Back, progress indicators, and
+Continue / Finish. The Chinese personal-edition flow is Language, Timer,
+Account; hosted variants may add a separately specified product step.
+Center a dialog up to 540 px wide on larger windows; below 600 px, use the full
+safe area. Scroll the slide body independently so account content remains
+reachable in short windows. Stack progress above the actions on narrow layouts
+or with enlarged text.
+
+Show all supported languages as selectable tiles, with System using a full row.
+Show Bar and Circle as timer preview cards; the illustration follows the selected
+language and timer style. Reflow choices into one column when space or text scale
+requires it. Use existing localized strings, palette roles and bundled fonts.
+Decorative previews are excluded from semantics and text scaling; setting labels
+retain text scaling, selection semantics and keyboard focus. Keep touch targets
+at least 48 px and prevent focus from reaching the underlying app.
+
+Back, progress indicators and swipes over the illustration navigate between
+slides without clearing saved settings. Mirror swipe direction in RTL; a swipe
+on the account slide never finishes the wizard. Use the shared 180 ms fade,
+finishing immediately with Reduce Motion. The personal edition does not
+initialize StoreKit/Stripe or show purchase prompts; account actions remain
+limited to the explicitly configured sign-in/sync boundary. Account buttons use
+the shared panel's compact vertical presentation. Closing or finishing still
+persists completion; prevent overlapping preference writes and show localized,
+retryable feedback when a write fails.
 
 ### Authentication
 

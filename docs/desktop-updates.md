@@ -1,15 +1,22 @@
 # Desktop updates
 
-Pomodoist checks public GitHub releases 10 seconds after startup, every six hours,
-and on resume when its last check was more than an hour ago. Automatic checks run
-in release builds; Settings → About → Updates also works in debug builds. Checks
-never download or execute an installer until the user presses **Update**.
+Hosted Pomodoist builds may check public GitHub releases 10 seconds after
+startup, every six hours, and on resume when their last check was more than an
+hour ago. Automatic checks run in enabled release builds; Settings → About →
+Updates also works in debug builds. Checks never download or execute an
+installer until the user presses **Update**.
 
-Official updates are enabled only for `POMODOIST_ENVIRONMENT=production`.
-Self-hosted, local and staging builds do not check, download or install official
-updates, including through manual actions. Their Settings explain this restriction;
-self-hosted clients must be rebuilt by their operator to preserve their server
-configuration. Production debug builds still support manual checks.
+The Chinese personal edition does not consume the upstream `Kabanya/Pomodoist`
+release feed. Its official-update flag is disabled for every environment, so it
+does not offer or install an upstream binary through automatic or manual checks.
+Until a fork-owned manifest, channel and compatibility-tested assets exist,
+download Chinese preview/local builds through the repository's manual Windows
+workflow. Self-hosted and local builds likewise do not check, download or install
+official updates; self-hosted clients must be rebuilt by their operator to
+preserve their server configuration.
+
+Hosted production builds may re-enable the generic official-update path only
+when they supply a compatible release source and policy explicitly.
 
 ## Channels and assets
 

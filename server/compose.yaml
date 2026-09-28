@@ -228,7 +228,7 @@ services:
       GOOGLE_CALENDAR_CLIENT_SECRET: ${GOOGLE_CALENDAR_CLIENT_SECRET:-}
       GOOGLE_CALENDAR_FUNCTION_URL: ${SUPABASE_PUBLIC_URL:?SUPABASE_PUBLIC_URL is required}/functions/v1/pomodoist-google-calendar
       GOOGLE_CALENDAR_WEBHOOK_URL: ${SUPABASE_PUBLIC_URL:?SUPABASE_PUBLIC_URL is required}/functions/v1/pomodoist-google-calendar
-      GOOGLE_CALENDAR_APP_REDIRECT_URI: pomodoist://google-calendar-connected
+      GOOGLE_CALENDAR_APP_REDIRECT_URI: ${GOOGLE_CALENDAR_APP_REDIRECT_URI:-pomodoist://google-calendar-connected}
       GOOGLE_CALENDAR_WORKER_SECRET: ${GOOGLE_CALENDAR_WORKER_SECRET:-}
       STRIPE_CHECKOUT_ENABLED: ${STRIPE_CHECKOUT_ENABLED:-false}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
@@ -247,7 +247,7 @@ services:
     container_name: pomodoist-selfhost-web
     build:
       context: ..
-      dockerfile: deploy/web/Dockerfile
+      dockerfile: tool/deploy/web/Dockerfile
       args:
         POMODOIST_BILLING_CHANNEL: stripe
         RELEASE_SHA: ${POMODOIST_RELEASE:?run make setup first}

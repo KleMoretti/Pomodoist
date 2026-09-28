@@ -33,6 +33,16 @@ AuthKey_*.p8
 private_keys/
 .appstoreconnect/private_keys/
 .dart_tool/
+# The trailing-slash rules above only match directories, while the Flutter
+# project links its Dart tool state to the repository-root build directory.
+# Those links are created by tool/link-build.sh, so the symlink form needs an
+# explicit rule or it shows up as untracked.
+#
+# The app's build/ link is deliberately left to /apps/flutter/build/ below.
+# Nested-project detection needs to see it as an ignored directory; the plain
+# path form turns it into a non-directory match, which makes VS Code resolve
+# nesting from the repository root instead of apps/flutter/.
+apps/flutter/.dart_tool
 .flutter-plugins-dependencies
 pubspec_overrides.yaml
 .pub-cache/
@@ -52,6 +62,18 @@ pubspec_overrides.yaml
 /macos/Flutter/ephemeral/
 /windows/flutter/ephemeral/
 
+# Flutter writes an <app>/build symlink into the app directory even though the
+# output lives under the repository-root build/ (see tool/link-build.sh). VS
+# Code walks the tree through that link and resolves the repository root as the
+# workspace root for the generated app files, so it analyses the root-level
+# build/dart_tool output against the root options and reports spurious
+# uri_does_not_exist errors for the plugin registrant.
+#
+# The app's analysis_options.yaml excludes build/** to cover the same files
+# when the app itself is opened; nothing under the app directory is affected
+# because the link resolves outside of it.
+/apps/flutter/build
+
 # Generated sidecar files for the checked-in Drift web worker asset.
 /web/drift_worker.js.deps
 /web/drift_worker.js.map
@@ -66,15 +88,31 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Binary assets are ignored by default. The icon masters and the per-flavor
+# icon sets listed below are deliberate exceptions and must remain tracked.
 **.png
-!android/app/src/main/res/mipmap-*/ic_launcher.png
-!ios/Runner/Assets.xcassets/AppIcon.appiconset/*.png
-!ios/PomodoistWatch/Assets.xcassets/AppIcon.appiconset/*.png
-!macos/Runner/Assets.xcassets/AppIcon.appiconset/*.png
-!web/favicon.png
-!web/icons/*.png
 pomodoist_app_icon_no_background.png
-!ios/Runner/pomodoist_app_icon_no_background.png
+
+# Tracked icon masters, the source of truth for the icon generator.
+!apps/flutter/assets/branding/app_icons/pomodoist_icon_development.png
+!apps/flutter/assets/branding/app_icons/pomodoist_icon_staging.png
+!apps/flutter/assets/branding/app_icons/pomodoist_icon_production.png
+
+# Tracked Android launcher icons: the shared main source set plus each flavor.
+!apps/flutter/android/app/src/main/res/mipmap-*/ic_launcher.png
+!apps/flutter/android/app/src/*/res/mipmap-*/ic_launcher.png
+
+# Tracked Apple app icons: iOS app, watch app and macOS app, default plus flavors.
+!apps/flutter/ios/Runner/Assets.xcassets/AppIcon*.appiconset/*.png
+!apps/flutter/ios/PomodoistWatch/Assets.xcassets/AppIcon*.appiconset/*.png
+!apps/flutter/macos/Runner/Assets.xcassets/AppIcon*.appiconset/*.png
+!apps/flutter/ios/Runner/pomodoist_app_icon_no_background.png
+
+# Tracked web icons: shared root assets plus each flavor directory.
+!apps/flutter/web/favicon.png
+!apps/flutter/web/icons/*.png
+!apps/flutter/web/icons/*/*.png
 .codex**
 key-**.md
 .gitignore
@@ -82,7 +120,9 @@ supabase/.temp/
 server/supabase/.temp/
 design/
 output/
-docs/
+docs/*
+!docs/localization/
+!docs/email-addresses.md
 temp**/
 tmp/
 
@@ -99,3 +139,56 @@ tool/apple/VOICE_TESTING.md
 *.pfx
 /android/.kotlin/
 /android/captures/
+docs/email-addresses.md
+ios/build/
+
+# Application monorepo and approved architecture documents.
+/apps/flutter/android/.gradle/
+/apps/flutter/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+/apps/flutter/android/local.properties
+/apps/flutter/ios/Flutter/Generated.xcconfig
+/apps/flutter/ios/Flutter/ephemeral/
+/apps/flutter/ios/Flutter/flutter_export_environment.sh
+/apps/flutter/ios/Runner/GeneratedPluginRegistrant.h
+/apps/flutter/ios/Runner/GeneratedPluginRegistrant.m
+/apps/flutter/linux/flutter/ephemeral/
+/apps/flutter/macos/Flutter/ephemeral/
+/apps/flutter/windows/flutter/ephemeral/
+/apps/flutter/web/GoogleOAuth.env
+/apps/flutter/web/drift_worker.js.deps
+/apps/flutter/web/drift_worker.js.map
+/apps/flutter/android/app/debug
+/apps/flutter/android/app/profile
+/apps/flutter/android/app/release
+/apps/flutter/android/key.properties
+/apps/flutter/android/.kotlin/
+/apps/flutter/android/captures/
+/apps/flutter/coverage/
+/apps/flutter/ios/build/
+/apps/flutter/macos/build/
+!docs/architecture/
+docs/architecture/*
+!docs/architecture/repository.md
+!docs/architecture/compatibility.md
+!docs/architecture/mvvm-implementation.md
+!docs/architecture/flutter-app-architecture.md
+!docs/architecture/chinese-upstream-integration.md
+!docs/superpowers/
+docs/superpowers/*
+!docs/superpowers/plans/
+!docs/superpowers/specs/
+docs/superpowers/plans/*
+docs/superpowers/specs/*
+!docs/superpowers/plans/2026-09-13-repository-refactor-options.md
+!docs/superpowers/plans/2026-09-20-flutter-official-architecture-alignment.md
+!docs/superpowers/specs/2026-09-13-two-minor-release-refactor-design.md
+
+!apps/chrome-extension/.gitignore
+apps/flutter/assets/branding/app_icons/plan.md
+
+# `make watch-debug` runs xcodebuild straight from apps/flutter/ios, so a
+# relative SYMROOT can land a full build tree in a nested apps/flutter/ios/apps.
+apps/flutter/ios/apps/
+
+# Node tooling: apps/chrome-extension is the only npm package in the repo.
+node_modules/
