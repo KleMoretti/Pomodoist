@@ -429,6 +429,12 @@ void main() {
   });
 
   group('windows/runner', () {
+    test('closing the main window terminates the native process', () {
+      final source = _read('apps/flutter/windows/runner/main.cpp');
+      expect(source, contains('window.SetQuitOnClose(true);'));
+      expect(source, isNot(contains('window.SetQuitOnClose(false);')));
+    });
+
     test('the flavor table is resolved before the runner is configured', () {
       // runner/CMakeLists.txt materializes flavor_config.h from the variables in
       // the parent scope, so the parent has to read FLUTTER_APP_FLAVOR before it

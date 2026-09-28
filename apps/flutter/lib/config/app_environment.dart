@@ -48,11 +48,17 @@ enum AppEnvironment {
 /// On the web the flavor check is skipped entirely: web builds carry no
 /// compile-time flavor and resolve theirs from `config.js` at runtime, and the
 /// web environment acceptance rules above already cover that case.
+///
+/// [allowLocalPersonalEdition] is the native-only exception used by the Chinese
+/// fork's personal edition. It keeps the shipped production identity while
+/// using local storage and no hosted backend. The opt-in is explicit so a
+/// normal production build can never accept a local configuration by accident.
 void validateEnvironment({
   required AppEnvironment appEnvironment,
   required RuntimePublicConfig config,
   bool isWeb = kIsWeb,
   AppFlavor? buildFlavor,
+  bool allowLocalPersonalEdition = false,
 }) {
   final builtAs = buildFlavor ?? buildTimeAppFlavor;
   if (!isWeb && builtAs != null && builtAs != appEnvironment.flavor) {
@@ -65,17 +71,12 @@ void validateEnvironment({
   final accepted = switch (appEnvironment) {
     AppEnvironment.development => const {RuntimeEnvironment.local},
     AppEnvironment.staging => const {RuntimeEnvironment.staging},
-    AppEnvironment.production =>
-      isWeb
-          ? const {
-              RuntimeEnvironment.production,
-              RuntimeEnvironment.selfhosted,
-              RuntimeEnvironment.staging,
-            }
-          : const {
-              RuntimeEnvironment.production,
-              RuntimeEnvironment.selfhosted,
-            },
+    AppEnvironment.production => <RuntimeEnvironment>{
+      RuntimeEnvironment.production,
+      RuntimeEnvironment.selfhosted,
+      if (isWeb) RuntimeEnvironment.staging,
+      if (!isWeb && allowLocalPersonalEdition) RuntimeEnvironment.local,
+    },
   };
   if (!accepted.contains(config.environment)) {
     throw StateError(

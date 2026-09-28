@@ -67,7 +67,11 @@ Future<void> _startPomodoist(
   AppEnvironment appEnvironment,
   RuntimePublicConfig runtimeConfig,
 ) async {
-  validateEnvironment(appEnvironment: appEnvironment, config: runtimeConfig);
+  validateEnvironment(
+    appEnvironment: appEnvironment,
+    config: runtimeConfig,
+    allowLocalPersonalEdition: personalEdition,
+  );
   // Publish the flavor before anything else is constructed so every layer
   // built below reads the same identity.
   publishAppFlavor(appEnvironment: appEnvironment, config: runtimeConfig);

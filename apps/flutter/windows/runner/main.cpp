@@ -67,7 +67,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   if (!window.Create(POMODOIST_FLAVOR_DISPLAY_NAME_WIDE, origin, size)) {
     return EXIT_FAILURE;
   }
-  window.SetQuitOnClose(false);
+  // Closing the main window must always terminate the native message loop.
+  // Otherwise a Dart bootstrap failure leaves an unresponsive process behind.
+  window.SetQuitOnClose(true);
 
   ::MSG msg;
   while (::GetMessage(&msg, nullptr, 0, 0)) {

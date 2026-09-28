@@ -3,11 +3,37 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pomodoist/config/billing_dependencies.dart';
 import 'package:pomodoist/config/billing_store_dependencies.dart';
+import 'package:pomodoist/config/app_environment.dart';
+import 'package:pomodoist/config/runtime_public_config.dart';
+import 'package:pomodoist/domain/models/personal_edition.dart';
 import 'package:pomodoist/ui/billing/view_models/billing_view_model.dart';
 import 'package:pomodoist/ui/onboarding/widgets/onboarding_gate.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('personal edition supports the shipped identity in local mode', () {
+    final config = RuntimePublicConfig.fromBuildTimeValues(
+      environment: 'local',
+      release: 'test',
+      webAppUrl: 'http://127.0.0.1:7358',
+      supabaseUrl: '',
+      supabaseAnonKey: '',
+      turnstileSiteKey: '',
+      sentryDsn: '',
+    );
+
+    expect(personalEdition, isTrue);
+    expect(
+      () => validateEnvironment(
+        appEnvironment: AppEnvironment.production,
+        config: config,
+        isWeb: false,
+        allowLocalPersonalEdition: personalEdition,
+      ),
+      returnsNormally,
+    );
+  });
 
   test('personal edition enables local access without constructing a store', () async {
     final container = ProviderContainer(

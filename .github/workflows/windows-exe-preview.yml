@@ -17,15 +17,15 @@ permissions:
 jobs:
   validate-ref:
     if: github.event_name == 'workflow_dispatch'
-    name: Require the Chinese development branch
+    name: Require a fork preview branch
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - name: Reject unsupported ref
         run: |
-          if [[ "$GITHUB_EVENT_NAME" != workflow_dispatch || "$GITHUB_REF" != refs/heads/chinese ]]; then
-            echo 'Fork releases must be dispatched from chinese. main is reserved for upstream synchronization.' >&2
+          if [[ "$GITHUB_EVENT_NAME" != workflow_dispatch || "$GITHUB_REF" == refs/heads/main ]]; then
+            echo 'Fork previews must be dispatched from chinese or a feature branch. main is reserved for upstream synchronization.' >&2
             exit 64
           fi
 
@@ -69,7 +69,7 @@ jobs:
         run: |
           flutter gen-l10n
           if ($LASTEXITCODE -ne 0) { throw 'Localization generation failed.' }
-          dart format lib/app/app_language.dart lib/app/app_l10n.dart lib/features/tasks/domain/task_models.dart lib/features/tasks/data/task_repository_impl.dart lib/features/tasks/presentation/task_detail_screen.dart lib/features/tasks/presentation/task_recurrence_button.dart test/chinese_recurrence_test.dart test/core_features_test.dart lib/features/focus/presentation/focus_preset_labels.dart lib/features/focus/presentation/focus_stage.dart lib/features/focus/presentation/focus_active_controls.dart lib/features/focus/presentation/focus_screen.dart lib/main.dart lib/app/personal_edition.dart lib/app/theme/app_theme.dart lib/features/billing/billing.dart lib/features/onboarding/onboarding_gate.dart lib/features/settings/presentation/settings_screen.dart lib/features/tasks/presentation/task_focus_launcher.dart lib/features/tasks/presentation/widgets/task_list_item.dart lib/features/tasks/presentation/kanban/kanban_screen.dart lib/features/focus/presentation/focus_start_dialog.dart test/personal_edition_test.dart test/task_focus_launcher_test.dart
+          dart format lib/app/app_language.dart lib/app/app_l10n.dart lib/config/app_environment.dart lib/config/bootstrap.dart lib/features/tasks/domain/task_models.dart lib/features/tasks/data/task_repository_impl.dart lib/features/tasks/presentation/task_detail_screen.dart lib/features/tasks/presentation/task_recurrence_button.dart test/app_environment_test.dart test/chinese_recurrence_test.dart test/core_features_test.dart lib/features/focus/presentation/focus_preset_labels.dart lib/features/focus/presentation/focus_stage.dart lib/features/focus/presentation/focus_active_controls.dart lib/features/focus/presentation/focus_screen.dart lib/main.dart lib/app/personal_edition.dart lib/app/theme/app_theme.dart lib/features/billing/billing.dart lib/features/onboarding/onboarding_gate.dart lib/features/settings/presentation/settings_screen.dart lib/features/tasks/presentation/task_focus_launcher.dart lib/features/tasks/presentation/widgets/task_list_item.dart lib/features/tasks/presentation/kanban/kanban_screen.dart lib/features/focus/presentation/focus_start_dialog.dart test/personal_edition_test.dart test/task_focus_launcher_test.dart test/windows_flavor_identity_test.dart test/workflow_yaml_test.dart
           if ($LASTEXITCODE -ne 0) { throw 'Formatting failed.' }
         working-directory: apps/flutter
       - name: Save generated sources for SDK-free development
@@ -106,7 +106,7 @@ jobs:
         run: |
           flutter analyze --no-pub
           if ($LASTEXITCODE -ne 0) { throw 'Static analysis failed.' }
-          flutter test --no-pub test/chinese_recurrence_test.dart test/personal_edition_test.dart test/task_focus_launcher_test.dart
+          flutter test --no-pub test/app_environment_test.dart test/chinese_recurrence_test.dart test/personal_edition_test.dart test/task_focus_launcher_test.dart test/windows_flavor_identity_test.dart test/workflow_yaml_test.dart
           if ($LASTEXITCODE -ne 0) { throw 'Feature tests failed.' }
         working-directory: apps/flutter
       - name: Test installer packaging boundary
@@ -203,6 +203,7 @@ jobs:
 
   publish:
     name: Publish Windows EXE
+    if: github.ref == 'refs/heads/chinese'
     environment: windows-preview
     needs: build-test
     runs-on: ubuntu-latest

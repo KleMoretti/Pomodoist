@@ -88,6 +88,27 @@ void main() {
       }
     });
 
+    test('production accepts local only for the native personal edition', () {
+      expect(
+        () => validateEnvironment(
+          appEnvironment: AppEnvironment.production,
+          config: _localConfig(),
+          isWeb: false,
+          allowLocalPersonalEdition: true,
+        ),
+        returnsNormally,
+      );
+      expect(
+        () => validateEnvironment(
+          appEnvironment: AppEnvironment.production,
+          config: _localConfig(),
+          isWeb: true,
+          allowLocalPersonalEdition: true,
+        ),
+        throwsStateError,
+      );
+    });
+
     test('production accepts the staging container on the web', () {
       expect(
         () => validateEnvironment(

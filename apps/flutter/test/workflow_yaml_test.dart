@@ -118,6 +118,7 @@ void main() {
     expect(linuxScript, contains('--field draft=false'));
 
     final windows = _job('../../.github/workflows/windows-exe-preview.yml', 'publish');
+    expect(windows['if'], "github.ref == 'refs/heads/chinese'");
     final windowsPublish = (windows['steps'] as YamlList).cast<YamlMap>().singleWhere(
       (step) => step['name'] == 'Publish manual GitHub pre-release',
     );
@@ -305,6 +306,10 @@ void main() {
 
     final validateRef = jobs['validate-ref'] as YamlMap;
     expect((validateRef['permissions'] as YamlMap)['contents'], 'read');
+    final validateScript =
+        ((validateRef['steps'] as YamlList).single as YamlMap)['run'] as String;
+    expect(validateScript, contains(r'$GITHUB_REF == refs/heads/main'));
+    expect(validateScript, isNot(contains(r'$GITHUB_REF != refs/heads/chinese')));
 
     final build = jobs['build-test'] as YamlMap;
     expect(build['needs'], 'validate-ref');
@@ -328,6 +333,7 @@ void main() {
 
     final publish = jobs['publish'] as YamlMap;
     expect(publish['needs'], 'build-test');
+    expect(publish['if'], "github.ref == 'refs/heads/chinese'");
     expect(publish['environment'], 'windows-preview');
     expect((publish['permissions'] as YamlMap)['contents'], 'write');
   });
@@ -377,6 +383,7 @@ void main() {
     ).readAsStringSync();
     expect(workflow, contains("- 'chinese'"));
     expect(workflow, contains('POMODOIST_ENVIRONMENT=local'));
+    expect(workflow, contains('flutter build windows --release --flavor production'));
     expect(workflow, contains('No local subscription requirements or purchase offers'));
     expect(workflow, isNot(contains('POMODOIST_REGISTRATION_URL')));
   });
