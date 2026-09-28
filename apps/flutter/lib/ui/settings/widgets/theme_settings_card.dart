@@ -184,10 +184,16 @@ class ThemeSettingsCard extends ConsumerWidget {
                       ),
                       if (!theme.isBuiltIn)
                         ShadButton.ghost(
+                          width: double.infinity,
                           height: 48,
+                          expands: true,
                           enabled: enabled,
                           onPressed: () => _edit(context, ref),
-                          child: Text(l10n.themeCustomize),
+                          child: Text(
+                            l10n.themeCustomize,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                     ],
                   ),
@@ -230,12 +236,18 @@ class ThemeSettingsCard extends ConsumerWidget {
         if (settings.loadFailed) ...[
           Text(l10n.themeLoadError),
           ShadButton.outline(
+            width: double.infinity,
             height: 48,
+            expands: true,
             onPressed: () => _run(
               context,
               () => ref.read(appThemeSettingsProvider.notifier).load(),
             ),
-            child: Text(l10n.commonRetry),
+            child: Text(
+              l10n.commonRetry,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ] else if (!settings.isLoaded)
           const LinearProgressIndicator(),
